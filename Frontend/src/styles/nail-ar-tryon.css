@@ -1,0 +1,169 @@
+.nail-ar-tryon {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.nail-ar-tryon__backdrop {
+  position: absolute;
+  inset: 0;
+  border: none;
+  background: rgba(0, 0, 0, 0.72);
+  cursor: pointer;
+}
+
+.nail-ar-tryon__panel {
+  position: relative;
+  z-index: 1;
+  width: min(920px, 100%);
+  max-height: calc(100svh - 2rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
+}
+
+.nail-ar-tryon__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.nail-ar-tryon__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.nail-ar-tryon__subtitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+  color: #666;
+}
+
+/* 다른 모달들과 똑같은 닫기 버튼 스타일(mypage-x__modal-close--plain)을 그대로 쓰되,
+   이 모달은 헤더가 absolute 오버레이가 아니라 flex 행이라 위치만 맞춰준다 */
+.nail-ar-tryon__close {
+  position: static;
+  flex-shrink: 0;
+}
+
+.nail-ar-tryon__stage {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #111;
+  aspect-ratio: 16 / 10;
+}
+
+.nail-ar-tryon__video {
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.nail-ar-tryon__canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+}
+
+.nail-ar-tryon__canvas.is-visible {
+  opacity: 1;
+}
+
+/* 3D 쉐입 템플릿 렌더링 시, 위 2D 캔버스(카메라 배경) 위에 겹쳐서 손톱 메시만 그리는
+   투명 WebGL 캔버스. 2D 폴백일 때는 만들어지지 않는다. */
+.nail-ar-tryon__mesh-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* Must match .nail-ar-tryon__canvas's object-fit exactly - both canvases
+     share the same internal pixel size (video's native resolution) and the
+     nail meshes are positioned in that same pixel space. Without this, the
+     video canvas (cover: uniform scale, cropped) and this mesh canvas
+     (default fill: non-uniform stretch to the box) would map that shared
+     pixel space to the screen differently, so the nail overlay drifts away
+     from the actual finger the more the container's aspect ratio differs
+     from the camera's. */
+  object-fit: cover;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.nail-ar-tryon__mesh-canvas.is-visible {
+  opacity: 1;
+}
+
+/* AR 모달에서는 카메라 선택 알약 버튼을 가운데가 아닌 왼쪽 상단에 두고,
+   '카메라' 라벨 문구는 숨겨 버튼만 노출한다 (hand-scan 공용 스타일은 그대로). */
+.nail-ar-tryon__stage .hand-scan-fs__feed-select-wrap {
+  left: 16px;
+  transform: none;
+}
+
+.nail-ar-tryon__stage .hand-scan-fs__feed-select-label {
+  align-items: flex-start;
+}
+
+.nail-ar-tryon__stage .hand-scan-fs__feed-select-name {
+  display: none;
+}
+
+.nail-ar-tryon__loading,
+.nail-ar-tryon__error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  text-align: center;
+  color: #fff;
+  font-size: 0.9375rem;
+}
+
+.nail-ar-tryon__error {
+  color: #ffd5df;
+}
+
+.nail-ar-tryon__hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #777;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .nail-ar-tryon {
+    padding: 0;
+  }
+
+  .nail-ar-tryon__panel {
+    width: 100%;
+    max-height: 100svh;
+    height: 100svh;
+    border-radius: 0;
+  }
+
+  .nail-ar-tryon__stage {
+    flex: 1;
+    aspect-ratio: auto;
+  }
+}
