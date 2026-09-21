@@ -41,6 +41,10 @@ public class ChatService {
     private static final List<String> REQUIRED_FOR_COMPLETION =
             List.of("mood", "designType", "color", "season", "motif", "shape");
 
+    // reply 문장이 "완료/완성"을 암시하는지 감지하는 패턴 (isComplete 모순 감지용 안전장치)
+    private static final java.util.regex.Pattern COMPLETION_PHRASE_PATTERN =
+            java.util.regex.Pattern.compile("완성해|완성됐|완성되었|완료됐|완료되었|준비가?\\s*완료|다\\s*됐어요|다\\s*되었어요");
+
     private static final String SYSTEM_PROMPT_TEMPLATE = """
              당신은 Naily 서비스의 네일 디자인 전문 AI 어시스턴트입니다.
                      사용자와 자유로운 순서로 대화하며 아래 카테고리별 선호(liked)/비선호(disliked)를 파악합니다:
@@ -362,6 +366,16 @@ public class ChatService {
             }
             if (resultJson.has("isComplete")) {
                 isComplete = resultJson.get("isComplete").asBoolean();
+            }
+
+            // ★ 코드 레벨 안전장치: reply 문장 자체가 완료를 암시하는데 isComplete가
+            // false로 오는 모순도 실제로 재현됐다(슬롯 추적이 카테고리명 표기 차이 등으로
+            // 어긋나 아래 stillEmpty 기반 교정이 못 잡는 경우). reply 텍스트만으로
+            // 완료 여부를 다시 확인해서, 모순되면 isComplete를 강제로 true로 바로잡는다.
+            if (!isComplete && COMPLETION_PHRASE_PATTERN.matcher(reply).find()) {
+                System.err.println("[ChatService] reply가 완료를 암시하는데 isComplete=false라서 강제 교정함: " + reply);
+                isComplete = true;
+                nextQuestionTarget = null;
             }
 
             // ★ 코드 레벨 안전장치: 프롬프트 지시만으로는 Gemini가 이미 채워진 카테고리를
