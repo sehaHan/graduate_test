@@ -1029,6 +1029,39 @@ export function useNailDesignChatPage() {
         goToPreferenceStep(targetIndex, updatedPreferences)
     }
 
+    // 선택지에서 고른 내용을 자연어 문장으로 조립한다. (비어있으면 null)
+    // 예전에는 /chats/{sessionId}/preferences(savePreferences, 레거시 API)를 호출했는데,
+    // 이 엔드포인트는 더 이상 백엔드의 SlotData 기반 슬롯 시스템과 연결되어 있지 않아서
+    // 여기서 고른 shape/color/season 등이 최종 프롬프트에 반영되지 않는 문제가 있었다.
+    const buildPreferenceSummaryMessage = (preferences: NailDesignPreferences): string | null => {
+        const parts = [
+            preferences.mood?.length ? `무드는 ${preferences.mood.join(', ')}` : null,
+            preferences.designType?.length ? `디자인 타입은 ${preferences.designType.join(', ')}` : null,
+            preferences.season?.length ? `계절은 ${preferences.season.join(', ')}` : null,
+            preferences.motif?.length ? `모티프는 ${preferences.motif.join(', ')}` : null,
+            preferences.shape?.length ? `쉐입은 ${preferences.shape.join(', ')}` : null,
+            preferences.color?.length ? `컬러는 ${preferences.color.join(', ')}` : null,
+        ].filter((part): part is string => !!part)
+
+        if (parts.length === 0) return null
+        return parts.join(', ') + '로 해주세요.'
+    }
+
+    // 선택지 흐름 중간에 자유 채팅으로 넘어갈 때, 그때까지 고른 값들을 백엔드(Gemini 슬롯)에
+    // 먼저 반영해 둔다. 이게 없으면 백엔드의 session.extractedPreferences가 비어있는 채로
+    // 자유 메시지가 전송되어, Gemini가 이전 선택을 전혀 모르는 상태로 처음부터 다시 물어보게 된다.
+    // 응답(reply)은 화면에 보여주지 않고 슬롯 반영 목적으로만 조용히 사용한다.
+    const syncCollectedPreferencesToBackend = async () => {
+        if (!sessionId) return
+        const summaryMessage = buildPreferenceSummaryMessage(collectedPreferences)
+        if (!summaryMessage) return
+        try {
+            await sendChatMessage(sessionId, summaryMessage)
+        } catch {
+            // 동기화 실패해도 이후 자유 메시지 전송은 계속 진행 (최소한 이번 메시지는 반영됨)
+        }
+    }
+
     const finalizePreferenceDesign = async (preferences: NailDesignPreferences) => {
         if (!sessionId) {
             pushAssistant('채팅 세션이 아직 준비되지 않았어요. 잠시 후 다시 시도해 주세요.')
@@ -1037,24 +1070,14 @@ export function useNailDesignChatPage() {
 
         // 선택지에서 고른 내용을 자연어 문장으로 조립해서, 실제 Gemini와 연동된
         // /chats/{sessionId}/messages(sendChatMessage)로 전송한다.
-        // 예전에는 /chats/{sessionId}/preferences(savePreferences, 레거시 API)를 호출했는데,
-        // 이 엔드포인트는 더 이상 백엔드의 SlotData 기반 슬롯 시스템과 연결되어 있지 않아서
-        // 여기서 고른 shape/color/season 등이 최종 프롬프트에 반영되지 않는 문제가 있었다.
-        const summaryMessage = [
-            preferences.mood?.length ? `무드는 ${preferences.mood.join(', ')}` : null,
-            preferences.designType?.length ? `디자인 타입은 ${preferences.designType.join(', ')}` : null,
-            preferences.season?.length ? `계절은 ${preferences.season.join(', ')}` : null,
-            preferences.motif?.length ? `모티프는 ${preferences.motif.join(', ')}` : null,
-            preferences.shape?.length ? `쉐입은 ${preferences.shape.join(', ')}` : null,
-            preferences.color?.length ? `컬러는 ${preferences.color.join(', ')}` : null,
-        ]
-            .filter(Boolean)
-            .join(', ') + '로 해주세요.'
+        const summaryMessage = buildPreferenceSummaryMessage(preferences)
 
-        try {
-            await sendChatMessage(sessionId, summaryMessage)
-        } catch {
-            // 전송 실패해도 스캔 기반 기본값으로 계속 진행
+        if (summaryMessage) {
+            try {
+                await sendChatMessage(sessionId, summaryMessage)
+            } catch {
+                // 전송 실패해도 스캔 기반 기본값으로 계속 진행
+            }
         }
         await runGenerateDesign(preferences, 'preference')
     }
@@ -1274,6 +1297,16 @@ export function useNailDesignChatPage() {
 
         if (mode === 'freeform' && isPreferenceModeSwitchIntent(text)) {
             switchToPreferenceMode()
+            return
+        }
+
+        if (mode === 'preference') {
+            // 선택지 단계 중간에 자유 채팅으로 이탈하는 경우 — 지금까지 고른 값들을 먼저
+            // 백엔드에 동기화한 뒤에 이번 메시지를 보내서, Gemini가 이미 답한 카테고리를
+            // 잊고 재질문하지 않게 한다.
+            setMode('freeform')
+            setIsSending(true)
+            void syncCollectedPreferencesToBackend().then(() => sendFreeformMessage(text))
             return
         }
 
