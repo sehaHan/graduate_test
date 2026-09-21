@@ -108,12 +108,24 @@ public class FingerDesignPlanService {
 
         [색상 규칙 - 매우 중요, 헥스 기반]
         top-level color 필드는 [확정된 입력 정보]에 주어진 헥스코드를 그대로 씁니다
-        (예: "#FFF2A8" 또는 색이 2개면 "#FFF2A8, #7CD6D6"). 헥스코드를 절대 새로 만들거나
-        바꾸지 마세요 — 주어진 값을 순서 그대로 복사하세요. 색이 2개 주어졌다면, 두 번째
-        색은 몇몇 손가락의 강조색/그라데이션 대상 색으로 적극적으로 활용하세요.
+        (예: "#FFF2A8" 또는 색이 여러 개면 "#FFF2A8, #7CD6D6, ..."). 헥스코드를 절대
+        새로 만들거나 바꾸지 마세요 — 주어진 값을 순서 그대로 복사하세요.
+
+        색상 개수별 처리 - 3개 이상도 반드시 아래 규칙을 따르세요:
+        - 1개: 5개 손가락 전부의 기본 base color로 씁니다.
+        - 2개: 첫 번째 색이 기본 base color, 두 번째 색은 몇몇 손가락의
+          강조색/그라데이션 대상 색으로 활용하세요.
+        - 3개 이상: 첫 번째 색을 기본 base color로 삼아 5개 손가락 중 과반(3개
+          이상)에 사용하고, 나머지 색들은 남은 손가락의 base_color나 일부 손가락의
+          강조색/그라데이션 대상 색으로 나눠 쓰세요. 5개 손가락을 주어진 색 개수로
+          단순히 순서대로 균등 배분(라운드로빈)하지 마세요 — 그렇게 하면 색 배정에만
+          신경 쓰다가 아래 [design richness]의 장식 다양성을 채우지 못하게 됩니다.
+          색상 개수가 몇 개든 [design richness] 절차(장식 종류 3~4개 채우기, 손가락별
+          서로 다른 조합)는 동일하게 100% 적용하세요 — 색상 다양성이 장식 다양성을
+          대체할 수 없습니다.
         손가락별 base_color는 기본적으로 빈 문자열("")로 두고, 그 손가락이 top-level
-        color와 다른 색을 써야 할 때만(손가락별 지정, 또는 두 번째 색을 강조색으로 쓰는
-        손가락) 해당 헥스코드를 채우세요.
+        color의 첫 번째 색과 다른 색을 써야 할 때만(손가락별 지정, 또는 두 번째/세
+        번째 이후 색을 base_color나 강조색으로 쓰는 손가락) 해당 헥스코드를 채우세요.
 
         ★ description 문장 안에서는 헥스코드를 절대 쓰지 말고, 그 색을 아래 규칙에 따라
         자연스러운 영어 색상 표현으로 변환하세요. Z-Image-Turbo 이미지 생성 모델은
@@ -232,6 +244,9 @@ public class FingerDesignPlanService {
         7) [design richness]로 항목을 추가했다면, 그 항목이 [pattern 우선순위]/
            [motif/parts 우선순위]/[finish 우선순위]를 어기지 않았는가? (사용자가 이미
            고른 카테고리에 표 항목을 끼워넣지 않았는지 재확인)
+        8) 색이 3개 이상이었다면, 색 배정에만 몰두해서 [design richness]의 장식 종류
+           3~4개 채우기를 빼먹지 않았는가? 5개 손가락의 description이 서로 다른가
+           (색만 다르고 나머지 문장이 완전히 동일한 손가락 쌍이 없는가)?
         하나라도 어긋나면 해당 손가락(들)을 다시 써서 고친 뒤에 최종 JSON을 출력하세요.
 
         [surface-finish 비호환 규칙 - 매우 중요]
@@ -450,11 +465,13 @@ public class FingerDesignPlanService {
         Map<String, Object> requestBody = Map.of(
                 "contents", List.of(Map.of("role", "user", "parts", parts)),
                 "systemInstruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
-                //5개 손가락+파츠까지 담아야 해서 응답이 길어질 수 있으므로 토큰을 넉넉히, thinking은 낮게
+                //5개 손가락+파츠까지 담아야 해서 응답이 길어질 수 있으므로 토큰을 넉넉히.
+                //시스템 프롬프트에 지켜야 할 규칙(색상 개수별 처리, richness, 비호환 조합,
+                //자기검증 체크리스트 등)이 많아져서 LOW로는 규칙 준수가 불안정했다 → MEDIUM으로 상향.
                 "generationConfig", Map.of(
                         "responseMimeType", "application/json",
                         "maxOutputTokens", 8192,
-                        "thinkingConfig", Map.of("thinkingLevel", "LOW")
+                        "thinkingConfig", Map.of("thinkingLevel", "MEDIUM")
                 )
         );
 
