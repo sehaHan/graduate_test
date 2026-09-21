@@ -161,32 +161,48 @@ public class FingerDesignPlanService {
         - "no", "not", "without" 같은 부정어는 description에 쓰지 마세요 (부정 표현은
           Java 쪽에서 별도로 처리합니다).
 
-        [design richness - 다양성 필수]
-        사용자가 명시적으로 "심플하게" 같은 표현을 쓰지 않았다면:
-        - 5개 손가락 description이 전부 똑같은 조합(예: 5개 모두 base color만 있고
-          motif/parts가 하나도 없는 상태)이 되는 것은 금지입니다.
-        - 최소 4개 손가락은 서로 다른 pattern/motif/parts 조합을 가져야 합니다 (아래
-          [finish 우선순위] 규칙에 따라 finish 자체는 바꾸지 않는 경우가 많습니다 —
-          그럴 땐 pattern/motif/parts만으로 다양성을 만드세요).
-        - 최소 3개 손가락에는 motif 또는 parts 중 하나 이상이 포함되어야 합니다.
-        - 손가락 개수 기준과 별개로, 세트 전체에서 실제 사용된 finish+pattern+motif+parts
-          서로 다른 종류의 합이 최소 3개 이상이어야 합니다. 예를 들어 5개 손가락이
-          finish는 전부 glitter 하나뿐이고 pattern도 polka dot 하나뿐이면 종류가 2개뿐이라
-          부족합니다 — motif나 parts를 최소 1종 이상 추가해서 3종을 채우세요.
-        - 5개 손가락 전부 pattern/motif/parts 중 최소 1개는 가져야 합니다. base color와
-          finish만 있고 pattern/motif/parts가 하나도 없는 손가락(완전히 빈 손가락)은
-          금지입니다. 다만 손가락마다 장식 개수는 균형 있게 다르게 가져가도 됩니다
-          (예: 1~2개 손가락은 pattern 하나만, 나머지는 motif/parts까지 포함).
-        사용자가 "심플하게"를 명시했다면 이 규칙 대신 최소한만 사용하고 description도
-        짧고 담백하게 쓰세요.
+        [design richness - 다양성 필수, 결정론적 규칙]
+        사용자가 명시적으로 "심플하게"/"simple" mood를 선택했다면: 아무것도 추가하지
+        말고 사용자가 고른 요소만 쓰고, description도 짧고 담백하게 쓰세요. 이 경우
+        아래 절차는 적용하지 않습니다.
 
-        ★ 우선순위 예외 - 매우 중요: 위 [design richness]는 [pattern 우선순위],
-        [motif/parts 우선순위], [finish 우선순위], [surface-finish 비호환 규칙]보다
-        항상 하위입니다. 사용자가 고른 요소가 적어서(예: motif 1개만 선택, pattern/parts
-        선택 없음) 위 개수 기준(특히 "세트 전체 최소 3종")을 다 채울 수 없다면, 사용자가
-        고르지 않은 요소를 새로 추가해서 억지로 채우지 마세요 — 이때는 기준 미달을
-        허용하고, [동일 요소의 motif/parts 혼합]과 description의 수식어·보조색 표현만으로
-        가능한 만큼만 다양성을 만드세요.
+        그 외의 경우, 아래 절차를 순서대로 따르세요:
+        1) 세트 전체에서 실제 사용된 finish+pattern+motif+parts의 "서로 다른 종류"
+           개수를 셉니다(5개 손가락에 흩어져 있어도 같은 값이면 1종류로 카운트).
+        2) 그 개수가 3개 미만이면, top-level mood(2개면 첫 번째 mood 기준)에 해당하는
+           아래 [mood → 추가 후보] 표에서 우선순위 순서대로 항목을 골라 3~4개가 될
+           때까지 채우세요.
+        3) 표에서 고른 항목이 [surface-finish 비호환 규칙]과 충돌하면 건너뛰고 표의
+           다음 순서 항목을 시도하세요.
+        4) ★ 우선순위 예외 - 매우 중요: [pattern 우선순위], [motif/parts 우선순위],
+           [finish 우선순위]가 이 표보다 항상 우선합니다. 사용자가 그 카테고리에서
+           명시적으로 아무것도 고르지 않았을 때만 표에서 그 카테고리 항목을 추가할 수
+           있고, 사용자가 그 카테고리에서 이미 뭔가 골랐다면 표에 그 카테고리 항목이
+           있어도 건너뛰고 다음 순서로 넘어가세요. 이렇게 해도 3~4개를 못 채운다면
+           기준 미달을 허용하고, [동일 요소의 motif/parts 혼합]과 description의
+           수식어·보조색 표현만으로 가능한 만큼만 다양성을 만드세요.
+        5) 표에서 고른 항목을 포함해, 최소 4개 손가락은 서로 다른 pattern/motif/parts
+           조합을 갖도록, 최소 3개 손가락에는 motif 또는 parts 중 하나 이상이 포함되도록
+           5개 손가락에 자연스럽게 나눠 배치하세요. 5개 손가락 전부 pattern/motif/parts
+           중 최소 1개는 가져야 합니다(base color와 finish만 있고 나머지가 텅 빈
+           손가락은 금지). 손가락마다 장식 개수는 균형 있게 다르게 가져가도 됩니다.
+
+        [mood → 추가 후보 (우선순위 순)]
+          lovely    bow ribbon, heart, pearl bead, cheek blush
+          cute      heart, polka dot, star, bow charm 3d
+          feminine  flower, lace, pearl bead, gradient
+          elegant   french tip, pearl trim, rhinestone, glitter
+          delicate  lace, pearl bead, line art, jelly
+          pure      jelly, flower, pearl bead, powder finish
+          chic      chrome, metal stud, color block, magnetic cat eye
+          modern    color block, chrome, metal stud, line art
+          funky     color block, star, chrome, stripe
+          kitsch    character, star, heart, sculpted 3d
+          y2k       chrome, star charm, heart charm, glitter
+          anime     character, star, line art, sculpted 3d
+          oriental  flower, marble, foil, line art
+        mood가 이 표에 없는 값이거나 2개 중 첫 번째가 표에 없다면, 두 번째 mood 또는
+        가장 가까운 표 항목을 기준으로 고르세요.
 
         [출력 전 자기검증 - 매우 중요]
         JSON을 작성한 뒤, 제출하기 전에 반드시 아래를 스스로 확인하고 어긋나면
@@ -210,6 +226,12 @@ public class FingerDesignPlanService {
            쓰였다면, motif 형태와 parts 형태가 실제로 최소 1개씩 섞여 있는가? (이 항목은
            "우선순위 예외" 대상이 아니므로 미달이면 안 됩니다 — 반드시 고쳐서 채우세요.)
         5) [surface-finish 비호환 규칙](아래)을 어긴 손가락이 없는가?
+        6) [비호환 조합 해결]을 적용해야 하는 상황(designType에 matte와 비호환 finish가
+           함께 있음)이었다면, 나중에 고른 쪽이 어디에도(surface든 finish 배열이든)
+           남아있지 않은가?
+        7) [design richness]로 항목을 추가했다면, 그 항목이 [pattern 우선순위]/
+           [motif/parts 우선순위]/[finish 우선순위]를 어기지 않았는가? (사용자가 이미
+           고른 카테고리에 표 항목을 끼워넣지 않았는지 재확인)
         하나라도 어긋나면 해당 손가락(들)을 다시 써서 고친 뒤에 최종 JSON을 출력하세요.
 
         [surface-finish 비호환 규칙 - 매우 중요]
@@ -217,6 +239,17 @@ public class FingerDesignPlanService {
         jelly, powder finish를 넣지 마세요 (매트 마감과 물리적으로 어울리지 않습니다).
         surface가 matte일 때 손가락별 finish에 쓸 수 있는 값은 magnetic cat eye, foil,
         sculpted 3d뿐입니다. surface가 glossy일 때는 이 제약이 없습니다.
+
+        [비호환 조합 해결 - 매우 중요]
+        [확정된 입력 정보]에서 사용자가 고른 designType(디자인 기법) 안에 matte와 위
+        비호환 finish(glitter/chrome/jelly/powder finish) 중 하나가 함께 들어있다면,
+        사용자가 먼저 고른(=먼저 언급된) 쪽을 유지하고 나중 것은 버리세요.
+        - 예: "매트, 파우더" 순서로 골랐다면 → surface는 matte로 하고 powder finish는
+          모든 손가락에서 버리세요.
+        - 예: "파우더, 매트" 순서로 골랐다면 → surface는 glossy로 하고 손가락별 finish에
+          powder finish를 유지하며 matte는 버리세요.
+        이렇게 버려진 쪽을 [design richness]가 다시 추가하는 일은 없어야 합니다 — 버려진
+        값은 이번 디자인 전체에서 아예 안 쓰는 것으로 취급하세요.
 
         [pattern 우선순위 - 매우 중요]
         사용자가 [확정된 입력 정보]에서 특정 pattern(예: french tip, marble, gradient 등
