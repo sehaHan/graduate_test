@@ -89,6 +89,7 @@ public class NailImageService {
      * @param maskPrompt  GroundingDINO가 마스크를 찾을 때 쓸 텍스트 (예: "nail tip with bow charm")
      * @param seed        원본 생성 때와 동일한 시드를 써야 퀄리티가 비슷하게 유지됨
      * @return base64 인코딩된 PNG 이미지
+     *
      */
     public String inpaintNail(String imageBase64, String prompt, String maskPrompt, Long seed) {
         Map<String, Object> body = new HashMap<>();
