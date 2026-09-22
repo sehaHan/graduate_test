@@ -162,9 +162,13 @@ public class NailDesignService {
         return generateDesign(userId, prompt, negativePrompt, null);
     }
 
+    // ComfyUI 브릿지 서버(main_comfy.py)에 고정으로 박혀있는 seed — 요청으로 안 받고 항상
+    // 이 값으로 생성되므로(재현성 확인됨), 여기서도 실제 사용된 값 그대로 기록만 해 둔다.
+    private static final long COMFY_FIXED_SEED = 258936135452521L;
+
     /**
-     * ★ 핵심 교체: ComfyUI → gen 서버 + detect 서버
-     * - nailImageService.generateNailImage() 로 이미지 base64 취득
+     * ★ 핵심 교체: diffusers gen 서버 → ComfyUI 브릿지 서버(main_comfy.py)
+     * - nailImageService.generateNailImageViaComfy() 로 이미지 base64 취득
      * - S3 업로드
      * - nailDetectionService.extractColorsPerNail() 로 컬러 팔레트 추출
      */
@@ -172,9 +176,9 @@ public class NailDesignService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
-        // 1. gen 서버에서 이미지 생성 (base64 반환)
-        long seed = (long) (Math.random() * Long.MAX_VALUE);
-        String imageBase64 = nailImageService.generateNailImage(prompt, seed);
+        // 1. ComfyUI 브릿지 서버에서 이미지 생성 (base64 반환). seed는 브릿지 서버에
+        //    고정값으로 박혀있어 요청으로 보내지 않는다.
+        String imageBase64 = nailImageService.generateNailImageViaComfy(prompt);
 
         // 2. base64 → bytes → S3 업로드
         byte[] imageBytes = Base64.getDecoder().decode(imageBase64);
@@ -191,14 +195,14 @@ public class NailDesignService {
                 .session(session)
                 .imageUrls(new ArrayList<>(List.of(s3Url)))
                 .promptSummary(prompt)
-                .aiModel("z-image-turbo + lora-v1 (diffusers)")
+                .aiModel("comfyui (main_comfy.py bridge)")
                 .status(NailDesign.DesignStatus.DRAFT)
                 .nailTipCropsJson(nailTipCropsJson)
-                .seed(seed)
+                .seed(COMFY_FIXED_SEED)
                 .build();
 
         NailDesign saved = nailDesignRepository.save(design);
-        System.out.println("[NailDesignService] designId=" + saved.getId() + " seed=" + seed);
+        System.out.println("[NailDesignService] designId=" + saved.getId() + " seed=" + COMFY_FIXED_SEED + " (comfy fixed)");
         return saved;
     }
 

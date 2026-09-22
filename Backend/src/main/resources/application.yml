@@ -111,8 +111,9 @@ printer:
     url: https://sermon-friction-unequal.ngrok-free.dev
 
 naily:
+  # 5손톱 메인 디자인 생성은 이제 comfy-server-url(ComfyUI 브릿지)을 쓴다.
+  # gen-server-url(diffusers)은 inpaint(수정 요청)와 텍스처 스와치 생성에서만 계속 쓰인다.
   gen-server-url: https://scalded-lard-seduce.ngrok-free.dev     # 생성 서버 (예서 컴퓨터, port 8000)
   detect-server-url: https://armhole-iphone-monitor.ngrok-free.dev  # 검출 서버 (학교 컴퓨터, port 8001)
-  # ComfyUI 브릿지 서버 (main_comfy.py) — 테스트용. 기존 diffusers 생성 서버(gen-server-url)는
-  # 그대로 두고, /designs/test-comfy-generate 로만 별도 테스트할 때 이 주소를 씀.
+  # ComfyUI 브릿지 서버 (main_comfy.py) — 웹 화면 "디자인 생성하기"가 실제로 쓰는 서버.
   comfy-server-url: http://localhost:8010
