@@ -1132,7 +1132,6 @@ public class NailDesignService {
     // buildCombinedPromptFromPlan - description 기반 산문 프롬프트로 전환
     private String buildCombinedPromptFromPlan(JsonNode plan, List<String> noPhrases, Map<String, List<String>> fingerDislikesMap) {
         String shape = toPromptText(plan.path("shape").asText("round"));
-        if ("ballerina".equalsIgnoreCase(shape)) shape = "coffin";
         String mood    = toPromptText(plan.path("mood").asText(""));
         String season  = toPromptText(plan.path("season").asText(""));
         String surface = toPromptText(plan.path("surface").asText("glossy"));
@@ -1157,9 +1156,6 @@ public class NailDesignService {
                 .append("All five nail tips are ").append(shape)
                 .append("-shaped press-on nails").append(getShapeProportion(shape))
                 .append(". Keep the shape consistent across all five nails.");
-        if ("coffin".equals(shape)) {
-            sb.append("\nThe overall silhouette should read as coffin-shaped.");
-        }
         sb.append("\n\n");
 
         List<String> collectedFinishes = new ArrayList<>();
@@ -1282,10 +1278,10 @@ public class NailDesignService {
 
     private String getShapeProportion(String shape) {
         return switch (shape.toLowerCase()) {
-            case "stiletto" -> " with sharp elegant proportions";
-            case "almond"   -> " with slightly elongated proportions";
-            case "coffin"   -> " with long flat-tipped proportions";
-            case "oval"     -> " with soft rounded proportions";
+            case "stiletto"  -> " with sharp elegant proportions";
+            case "almond"    -> " with slightly elongated proportions";
+            case "ballerina" -> " with long flat-tipped proportions";
+            case "oval"      -> " with soft rounded proportions";
             case "square"   -> " with clean straight-edged proportions";
             case "round"    -> " with natural rounded proportions";
             default -> "";
