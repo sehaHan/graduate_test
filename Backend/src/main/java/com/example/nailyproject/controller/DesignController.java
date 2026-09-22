@@ -5,6 +5,7 @@ import com.example.nailyproject.dto.response.ApiResponse;
 import com.example.nailyproject.dto.response.DesignGenerateResponseDto;
 import com.example.nailyproject.entity.User;
 import com.example.nailyproject.service.NailDesignService;
+import com.example.nailyproject.service.NailImageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -24,6 +25,24 @@ import java.util.Map;
 public class DesignController {
 
     private final NailDesignService nailDesignService;
+    private final NailImageService nailImageService;
+
+    /**
+     * [테스트 전용] ComfyUI 브릿지 서버(main_comfy.py) 직접 호출 테스트.
+     * POST /designs/test-comfy-generate  body: {"prompt": "..."}
+     * DB 저장 없이 base64 이미지만 바로 돌려준다 — naily.comfy-server-url 연결 확인용.
+     */
+    @PostMapping("/test-comfy-generate")
+    public ResponseEntity<ApiResponse<Map<String, String>>> testComfyGenerate(
+            @RequestBody Map<String, String> request) {
+
+        String prompt = request.get("prompt");
+        String imageBase64 = nailImageService.generateNailImageViaComfy(prompt);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(200, "ComfyUI 테스트 생성 성공", Map.of("imageBase64", imageBase64))
+        );
+    }
 
     /**
      * 디자인 생성 요청 POST /designs/generate

@@ -113,3 +113,6 @@ printer:
 naily:
   gen-server-url: https://scalded-lard-seduce.ngrok-free.dev     # 생성 서버 (예서 컴퓨터, port 8000)
   detect-server-url: https://armhole-iphone-monitor.ngrok-free.dev  # 검출 서버 (학교 컴퓨터, port 8001)
+  # ComfyUI 브릿지 서버 (main_comfy.py) — 테스트용. 기존 diffusers 생성 서버(gen-server-url)는
+  # 그대로 두고, /designs/test-comfy-generate 로만 별도 테스트할 때 이 주소를 씀.
+  comfy-server-url: http://localhost:8010

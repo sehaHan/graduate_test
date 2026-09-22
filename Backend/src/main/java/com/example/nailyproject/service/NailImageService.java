@@ -8,6 +8,7 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -26,6 +27,10 @@ public class NailImageService {
 
     @Value("${naily.gen-server-url}")
     private String genServerUrl;
+
+    // ComfyUI 브릿지 서버(main_comfy.py) — 테스트용, gen-server-url과 별개 (application.yml 참고)
+    @Value("${naily.comfy-server-url:}")
+    private String comfyServerUrl;
 
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
@@ -136,6 +141,45 @@ public class NailImageService {
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, buildHeaders());
         ResponseEntity<String> response = restTemplate.postForEntity(
                 genServerUrl + "/generate", request, String.class
+        );
+
+        return extractBase64(response.getBody(), "image_base64");
+    }
+
+    // -------------------------------------------------------------------------
+    // 4. ComfyUI 브릿지 서버 (main_comfy.py) — 테스트용
+    // -------------------------------------------------------------------------
+
+    /**
+     * ComfyUI 브릿지 서버(main_comfy.py)에 프롬프트 기반 이미지 생성을 요청한다.
+     * - 요청 body는 {"prompt": "..."} 뿐이다 (steps/guidance_scale/width/height 없음).
+     * - seed는 브릿지 서버 안에 고정값으로 박혀있어 요청으로 받지 않는다 — 여기서도 안 보낸다.
+     * - ★ 명세서 경고: prompt에 불필요한 줄바꿈/들여쓰기 공백이 섞이면 결과가 달라진다.
+     *   여러 줄로 조립된 프롬프트를 공백 하나로 이어붙여서 보낸다.
+     *
+     * @param prompt 조립된 최종 프롬프트 (줄바꿈/들여쓰기가 있어도 이 메서드가 정규화함)
+     * @return base64 인코딩된 PNG 이미지
+     */
+    public String generateNailImageViaComfy(String prompt) {
+        if (comfyServerUrl == null || comfyServerUrl.isBlank()) {
+            throw new IllegalStateException("naily.comfy-server-url이 설정되지 않았습니다.");
+        }
+
+        // 줄 단위로 trim 후 공백 하나로 이어붙여서, 들여쓰기/줄바꿈이 텍스트 내용에 섞이지 않게 한다.
+        String normalizedPrompt = String.join(" ",
+                Arrays.stream(prompt.split("\\R"))
+                        .map(String::trim)
+                        .filter(line -> !line.isEmpty())
+                        .toList()
+        ).trim();
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("prompt", normalizedPrompt);
+        System.out.println("[NailImageService] comfy generate (seed는 브릿지 서버에 고정, 요청에 안 보냄)");
+
+        HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, buildHeaders());
+        ResponseEntity<String> response = restTemplate.postForEntity(
+                comfyServerUrl + "/generate", request, String.class
         );
 
         return extractBase64(response.getBody(), "image_base64");
