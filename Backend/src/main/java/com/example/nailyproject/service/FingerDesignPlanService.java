@@ -60,18 +60,24 @@ public class FingerDesignPlanService {
            단어를 써도 되지만, finish/pattern/motif/parts로 고른 핵심 요소(예: bow
            ribbon, pearl bead)는 반드시 문장 안에 실제로 언급되어야 합니다.
 
-           수식어 사용 범위 - 매우 중요:
+           수식어 사용 범위 - 매우 중요 (풍부하고 섬세하게 쓰는 것을 적극 권장):
            - base color/finish/surface를 묘사할 때는 "soft", "translucent", "milky",
              "glossy" 같은 수식어나 "light mint", "lemon-yellow", "gold" 같은 보조
              색상 표현을 자유롭게 써도 됩니다 (이미지의 색감·질감을 결정하는 부분이라
              구체적일수록 좋습니다).
-           - 반면 motif/parts(장식: bow ribbon, heart, rhinestone, pearl bead, charm
-             등)를 문장에 넣을 때는 이름만 말하세요. 그 장식의 크기, 개수, 위치, 두드러짐
-             정도를 나타내는 수식어("tiny", "small", "large", "delicate", "subtle",
-             "raised", "dimensional", "a single", "a couple of")는 붙이지 마세요.
+           - motif/parts(장식: bow ribbon, heart, rhinestone, pearl bead, charm 등)도
+             이름만 나열하지 말고, 크기/두드러짐 정도를 나타내는 수식어("delicate",
+             "tiny", "small", "subtle", "raised", "soft")를 적극적으로 붙여서 더
+             섬세하고 구체적인 문장으로 쓰세요. 손가락마다 다른 수식어를 써서 같은
+             장식이라도 다르게 느껴지도록 만드는 것도 좋습니다.
              예: "Add delicate bow ribbon details with tiny pearl bead and rhinestone
-             accents." (X, 장식에 수식어) → "Add bow ribbon, pearl bead, and rhinestone."
-             (O, 장식은 이름만)
+             accents." (O, 권장), "Add a raised pearl bead as the main sculpted 3d
+             decoration." (O, 권장) — "Add bow ribbon, pearl bead, and rhinestone."처럼
+             수식어 없이 이름만 나열하는 밋밋한 문장은 피하세요.
+           - 단, "large", "a couple of", "a single"처럼 장식의 정확한 개수/절대적
+             크기를 못 박는 표현은 여전히 피하세요 (실제 이미지에서 그 개수/크기가
+             그대로 나온다는 보장이 없어 프롬프트와 결과가 어긋날 수 있습니다). 크기감은
+             "tiny", "delicate", "subtle"처럼 상대적인 인상을 주는 수식어로만 표현하세요.
 
         [사용 가능한 어휘 - finish/pattern/motif/parts 배열 전용]
         아래 각 카테고리의 배열 값은 반드시 이 목록에 있는 단어만 사용하세요.
@@ -164,9 +170,10 @@ public class FingerDesignPlanService {
           그라데이션·프렌치팁·마블 등 패턴이 있으면 그 대상 색까지 자연스럽게 묘사
           (예: "Pale yellow glossy jelly base with a soft gradient transition into
           light mint.")
-        - 둘째 문장(장식이 있을 때만): "Add " 로 시작해서 motif/parts 이름을 나열
-          (수식어 없이 이름만 — 위 [출력의 두 층]의 "수식어 사용 범위" 참고)
-          (예: "Add bow ribbon, pearl bead, and rhinestone.")
+        - 둘째 문장(장식이 있을 때만): "Add " 로 시작해서 motif/parts를 수식어와 함께
+          섬세하게 묘사 (위 [출력의 두 층]의 "수식어 사용 범위" 참고)
+          (예: "Add delicate bow ribbon details with tiny pearl bead and rhinestone
+          accents.")
         - 5개 손가락은 절대 서로 동일한 문장이 되면 안 됩니다 (아래 [design richness]
           참고). 같은 base color를 공유하더라도 finish/pattern/motif/parts 조합이나
           수식어를 다르게 써서 각 손가락이 실제로 달라 보이게 하세요.
