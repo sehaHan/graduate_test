@@ -61,6 +61,7 @@ public class NailImageService {
         if (seed != null) {
             body.put("seed", seed);
         }
+        System.out.println("[NailImageService] generate seed=" + seed);
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, buildHeaders());
         ResponseEntity<String> response = restTemplate.postForEntity(
@@ -98,6 +99,7 @@ public class NailImageService {
         if (seed != null) {
             body.put("seed", seed);
         }
+        System.out.println("[NailImageService] inpaint seed=" + seed);
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, buildHeaders());
         ResponseEntity<String> response = restTemplate.postForEntity(
@@ -129,6 +131,7 @@ public class NailImageService {
         if (seed != null) {
             body.put("seed", seed);
         }
+        System.out.println("[NailImageService] texture swatch seed=" + seed);
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, buildHeaders());
         ResponseEntity<String> response = restTemplate.postForEntity(

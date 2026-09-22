@@ -197,7 +197,9 @@ public class NailDesignService {
                 .seed(seed)
                 .build();
 
-        return nailDesignRepository.save(design);
+        NailDesign saved = nailDesignRepository.save(design);
+        System.out.println("[NailDesignService] designId=" + saved.getId() + " seed=" + seed);
+        return saved;
     }
 
     private String fetchAndUploadNailTipCrops(Long userId, String imageBase64) {
