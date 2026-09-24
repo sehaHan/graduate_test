@@ -35,12 +35,14 @@ public class RefineService {
     private final ObjectMapper objectMapper;
     private final NailDesignService nailDesignService;
     private final NailDetectionService nailDetectionService;
+    private final GptClientService gptClientService;
 
-    @Value("${gemini.api.key}")
-    private String apiKey;
-
-    @Value("${gemini.api.url}")
-    private String apiUrl;
+    // Gemini 설정 - GPT로 교체하면서 주석 처리 (롤백 대비, 삭제 안 함)
+    // @Value("${gemini.api.key}")
+    // private String apiKey;
+    //
+    // @Value("${gemini.api.url}")
+    // private String apiUrl;
 
     private static final Pattern HEX_PATTERN = Pattern.compile("^#[0-9A-Fa-f]{6}$");
     private static final RestTemplate restTemplate = new RestTemplate();
@@ -172,22 +174,25 @@ public class RefineService {
         String previousPlanJson = prevDesign.getDesignPlan() != null
                 ? prevDesign.getDesignPlan() : "(직전 플랜 없음)";
 
-        // 1. Gemini로 prompt + mask_prompt 생성
+        // 1. GPT로 prompt + mask_prompt 생성
         String systemPrompt = String.format(SYSTEM_PROMPT_TEMPLATE, originalPrompt, previousPlanJson);
-        Map<String, Object> requestBody = Map.of(
-                "contents", List.of(Map.of("role", "user",
-                        "parts", List.of(Map.of("text", message)))),
-                "systemInstruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
-                "generationConfig", Map.of(
-                        "responseMimeType", "application/json",
-                        "maxOutputTokens", 8192,
-                        "thinkingConfig", Map.of("thinkingLevel", "MEDIUM")
-                )
-        );
 
-        JsonNode responseNode = callGeminiWithRetry(requestBody);
-        String aiText = responseNode.path("candidates").get(0)
-                .path("content").path("parts").get(0).path("text").asText();
+        // [Gemini 방식 - 주석 처리]
+        // Map<String, Object> requestBody = Map.of(
+        //         "contents", List.of(Map.of("role", "user",
+        //                 "parts", List.of(Map.of("text", message)))),
+        //         "systemInstruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
+        //         "generationConfig", Map.of(
+        //                 "responseMimeType", "application/json",
+        //                 "maxOutputTokens", 8192,
+        //                 "thinkingConfig", Map.of("thinkingLevel", "MEDIUM")
+        //         )
+        // );
+        // JsonNode responseNode = callGeminiWithRetry(requestBody);
+        // String aiText = responseNode.path("candidates").get(0)
+        //         .path("content").path("parts").get(0).path("text").asText();
+
+        String aiText = gptClientService.chat(systemPrompt, message, 8192, true);
 
         JsonNode resultJson;
         try {
@@ -197,7 +202,7 @@ public class RefineService {
             throw new IllegalStateException("수정 내용을 이해하지 못했어요. 다시 말씀해 주세요.");
         }
 // ★ 이 줄 추가
-        System.out.println("[RefineService] Gemini 응답: " + aiText);
+        System.out.println("[RefineService] GPT 응답: " + aiText);
 
         String inpaintPrompt = resultJson.path("prompt").asText("");
         String maskPrompt    = resultJson.path("mask_prompt").asText("");
@@ -368,28 +373,29 @@ public class RefineService {
         try { updater.accept(objectMapper.writeValueAsString(merged)); } catch (Exception ignored) {}
     }
 
-    private JsonNode callGeminiWithRetry(Map<String, Object> requestBody) {
-        WebClient webClient = webClientBuilder.build();
-        int maxAttempts = 3;
-        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-            try {
-                return webClient.post()
-                        .uri(apiUrl + "?key=" + apiKey.trim())
-                        .bodyValue(requestBody)
-                        .retrieve()
-                        .bodyToMono(JsonNode.class)
-                        .block();
-            } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
-                int code = e.getStatusCode().value();
-                if ((code == 429 || code == 503) && attempt < maxAttempts) {
-                    try { Thread.sleep(1500L * attempt); } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                    }
-                    continue;
-                }
-                throw new IllegalStateException("AI 서버 오류: " + e.getStatusCode());
-            }
-        }
-        throw new IllegalStateException("AI 응답 실패");
-    }
+    // Gemini 호출 로직 - GPT(GptClientService)로 교체하면서 주석 처리 (롤백 대비, 삭제 안 함)
+    // private JsonNode callGeminiWithRetry(Map<String, Object> requestBody) {
+    //     WebClient webClient = webClientBuilder.build();
+    //     int maxAttempts = 3;
+    //     for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+    //         try {
+    //             return webClient.post()
+    //                     .uri(apiUrl + "?key=" + apiKey.trim())
+    //                     .bodyValue(requestBody)
+    //                     .retrieve()
+    //                     .bodyToMono(JsonNode.class)
+    //                     .block();
+    //         } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
+    //             int code = e.getStatusCode().value();
+    //             if ((code == 429 || code == 503) && attempt < maxAttempts) {
+    //                 try { Thread.sleep(1500L * attempt); } catch (InterruptedException ie) {
+    //                     Thread.currentThread().interrupt();
+    //                 }
+    //                 continue;
+    //             }
+    //             throw new IllegalStateException("AI 서버 오류: " + e.getStatusCode());
+    //         }
+    //     }
+    //     throw new IllegalStateException("AI 응답 실패");
+    // }
 }

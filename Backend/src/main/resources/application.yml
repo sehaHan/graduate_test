@@ -80,11 +80,21 @@ jwt:
   secret: ENC(uAYjhPVuUKuxBjz3YEDgK/rxu5UtXbipxkgsDq7rCR2XYZg1U9hS2jxX+oK5PIX+)
   expiration: 86400000 #24시간
 
-gemini:
-  api:
+# Gemini 설정 - GPT API로 교체하면서 주석 처리 (롤백 대비, 삭제 안 함)
+#gemini:
+#  api:
 #    key: ENC(f11Gu+eqSDV89d4XdLuuhSgUpmthWA1ZFzmg9oZgvPOmNwjRqrbNyVa5n0uOHLqb)
-    key: ENC(r7E1eFRjogbReg0hDJoOieJu/7/QBgctrZjI5XTkZFVZYzogIGQdIHsykK2m1fCv1eNSmBWJFzTvtpaWbq1cFQ==)
-    url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent"
+#    key: ENC(r7E1eFRjogbReg0hDJoOieJu/7/QBgctrZjI5XTkZFVZYzogIGQdIHsykK2m1fCv1eNSmBWJFzTvtpaWbq1cFQ==)
+#    url: "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent"
+
+# OpenAI 설정 - ChatService/FingerDesignPlanService/RefineService/TextureExtractService가
+# 전부 GptClientService를 통해 여기 설정을 씀. key는 직접 채워 넣을 것
+# (환경변수 OPENAI_API_KEY로 넣거나, 이 줄에 Jasypt ENC(...)로 직접 넣어도 됨).
+openai:
+  api:
+    key: ${OPENAI_API_KEY:}
+    url: https://api.openai.com/v1/chat/completions
+    model: gpt-4.1
 
 
 cloud:
