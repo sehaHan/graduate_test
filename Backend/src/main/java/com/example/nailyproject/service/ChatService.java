@@ -27,12 +27,14 @@ public class ChatService {
     private final WebClient.Builder webClientBuilder;
     private final ObjectMapper objectMapper;
     private final StyleTrendService styleTrendService;  // 추가
+    private final GptClientService gptClientService;
 
-    @Value("${gemini.api.key}")
-    private String apiKey;
-
-    @Value("${gemini.api.url}")
-    private String apiUrl;
+    // Gemini 설정 - GPT로 교체하면서 주석 처리 (롤백 대비, 삭제 안 함)
+    // @Value("${gemini.api.key}")
+    // private String apiKey;
+    //
+    // @Value("${gemini.api.url}")
+    // private String apiUrl;
 
 
     private static final List<String> CATEGORIES =
@@ -205,14 +207,22 @@ public class ChatService {
                 .filter(cat -> !slots.containsKey(cat) || slots.get(cat).getLiked().isEmpty())
                 .toList();
 
-        //대화 히스토리 Gemini가 이해하는 형식으로 변환
+        //대화 히스토리 - GPT(OpenAI) messages 형식으로 변환
+        // [Gemini 방식 - 주석 처리]
+        // List<ChatMessage> savedMessages = chatMessageRepository.findBySessionOrderBySentAtAsc(session);
+        // List<Map<String, Object>> contents = new ArrayList<>();
+        // for (ChatMessage msg : savedMessages) {
+        //     String role = (msg.getRole() == ChatMessage.MessageRole.user) ? "user" : "model";
+        //     contents.add(Map.of("role", role, "parts", List.of(Map.of("text", msg.getContent()))));
+        // }
+        // contents.add(Map.of("role", "user", "parts", List.of(Map.of("text", userMessage))));
         List<ChatMessage> savedMessages = chatMessageRepository.findBySessionOrderBySentAtAsc(session);
-        List<Map<String, Object>> contents = new ArrayList<>();
+        List<Map<String, Object>> chatMessages = new ArrayList<>();
         for (ChatMessage msg : savedMessages) {
-            String role = (msg.getRole() == ChatMessage.MessageRole.user) ? "user" : "model";
-            contents.add(Map.of("role", role, "parts", List.of(Map.of("text", msg.getContent()))));
+            String role = (msg.getRole() == ChatMessage.MessageRole.user) ? "user" : "assistant";
+            chatMessages.add(Map.of("role", role, "content", msg.getContent()));
         }
-        contents.add(Map.of("role", "user", "parts", List.of(Map.of("text", userMessage))));
+        chatMessages.add(Map.of("role", "user", "content", userMessage));
 
         String slotsJson;
         try {
@@ -273,41 +283,48 @@ public class ChatService {
         String systemPrompt = String.format(
                 SYSTEM_PROMPT_TEMPLATE, scanHint, slotsJson, String.join(", ", emptyRequiredCategories));
 
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("contents", contents);
-        requestBody.put("systemInstruction", Map.of("parts", List.of(Map.of("text", systemPrompt))));
+        // [Gemini 방식 - 주석 처리]
+        // Map<String, Object> requestBody = new HashMap<>();
+        // requestBody.put("contents", contents);
+        // requestBody.put("systemInstruction", Map.of("parts", List.of(Map.of("text", systemPrompt))));
+        //
+        // //Gemini에게 무조건 JSON으로 응답하도록 강제하는 설정
+        // //응답이 중간에 잘리지 않도록 출력 토큰을 넉넉히 확보하고, 간단한 대화라 thinking 예산은 낮춤
+        // requestBody.put("generationConfig", Map.of(
+        //         "responseMimeType", "application/json",
+        //         "maxOutputTokens", 8192,
+        //         "thinkingConfig", Map.of("thinkingLevel", "LOW")
+        // ));
+        //
+        // JsonNode responseNode = callGeminiWithRetry(requestBody);
+        // System.out.println("finishReason: " + responseNode.path("candidates").get(0).path("finishReason").asText());
+        // System.out.println("usageMetadata: " + responseNode.path("usageMetadata"));
+        //
+        // JsonNode partsNode = responseNode.path("candidates").get(0).path("content").path("parts");
+        // System.out.println("parts 개수: " + partsNode.size());
+        // System.out.println("parts 전체: " + partsNode.toString());
+        //
+        // String aiResponseText = "";
+        // if (responseNode != null && responseNode.has("candidates")) {
+        //     aiResponseText = responseNode.path("candidates").get(0)
+        //             .path("content").path("parts").get(0)
+        //             .path("text").asText();
+        //
+        //     if (aiResponseText != null && !aiResponseText.trim().isEmpty()) {
+        //         aiResponseText = aiResponseText.trim();
+        //         if (!aiResponseText.endsWith("}")) {
+        //             aiResponseText += "\n}";
+        //         }
+        //     }
+        // }
 
-        //Gemini에게 무조건 JSON으로 응답하도록 강제하는 설정
-        //응답이 중간에 잘리지 않도록 출력 토큰을 넉넉히 확보하고, 간단한 대화라 thinking 예산은 낮춤
-        requestBody.put("generationConfig", Map.of(
-                "responseMimeType", "application/json",
-                "maxOutputTokens", 8192,
-                "thinkingConfig", Map.of("thinkingLevel", "LOW")
-        ));
-
-        // ↓↓↓ 여기서부터 DB 트랜잭션 없이 Gemini 호출 (재시도로 최대 9초+ 걸릴 수 있는 블로킹 구간)
-        JsonNode responseNode = callGeminiWithRetry(requestBody);
-        //토큰 확인용
-        System.out.println("finishReason: " + responseNode.path("candidates").get(0).path("finishReason").asText());
-        System.out.println("usageMetadata: " + responseNode.path("usageMetadata"));
-
-        JsonNode partsNode = responseNode.path("candidates").get(0).path("content").path("parts");
-        System.out.println("parts 개수: " + partsNode.size());
-        System.out.println("parts 전체: " + partsNode.toString());
-
-
-        String aiResponseText = "";
-        if (responseNode != null && responseNode.has("candidates")) {
-            aiResponseText = responseNode.path("candidates").get(0)
-                    .path("content").path("parts").get(0)
-                    .path("text").asText();
-
-            if (aiResponseText != null && !aiResponseText.trim().isEmpty()) {
-                aiResponseText = aiResponseText.trim();
-                // 텍스트가 닫는 괄호로 끝나지 않으면 강제로 추가
-                if (!aiResponseText.endsWith("}")) {
-                    aiResponseText += "\n}";
-                }
+        // ↓↓↓ 여기서부터 DB 트랜잭션 없이 GPT 호출 (재시도로 최대 9초+ 걸릴 수 있는 블로킹 구간)
+        String aiResponseText = gptClientService.chat(systemPrompt, chatMessages, 8192, true);
+        if (aiResponseText != null && !aiResponseText.trim().isEmpty()) {
+            aiResponseText = aiResponseText.trim();
+            // 텍스트가 닫는 괄호로 끝나지 않으면 강제로 추가
+            if (!aiResponseText.endsWith("}")) {
+                aiResponseText += "\n}";
             }
         }
         // ↑↑↑ 여기까지 트랜잭션 없음. 이제부터 결과 반영은 짧은 트랜잭션(persistChatResult)으로 넘김
@@ -509,48 +526,49 @@ public class ChatService {
         }
     }
 
-    /**
-     * Gemini 호출. 429(요청 한도 초과)면 잠깐 대기 후 최대 2회 재시도.
-     * 그래도 실패하면 프론트가 "로그인 세션 만료"로 오인하지 않도록 IllegalStateException으로 변환.
-     */
-    private JsonNode callGeminiWithRetry(Map<String, Object> requestBody) {
-        WebClient webClient = webClientBuilder.build();
-        int maxAttempts = 3;
-        long backoffMillis = 1500;
-
-        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-            try {
-                return webClient.post()
-                        .uri(apiUrl + "?key=" + apiKey.trim())
-                        .bodyValue(requestBody)
-                        .retrieve()
-                        .bodyToMono(JsonNode.class)
-                        .block();
-            } catch (WebClientResponseException e) {
-                int statusCode = e.getStatusCode().value();
-                boolean isRetryable = statusCode == 429 || statusCode == 503; // 429=요청과다, 503=모델 과부하
-                boolean hasAttemptsLeft = attempt < maxAttempts;
-
-                System.err.println("Gemini API 호출 실패 (시도 " + attempt + "/" + maxAttempts + "): "
-                        + e.getStatusCode() + " " + e.getResponseBodyAsString());
-
-                if (isRetryable && hasAttemptsLeft) {
-                    try {
-                        Thread.sleep(backoffMillis * attempt); // 1.5초, 3초 ...로 점점 늘려가며 재시도
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                    }
-                    continue;
-                }
-
-                if (isRetryable) {
-                    throw new IllegalStateException("지금 AI 서버가 혼잡해서 응답이 지연되고 있어요. 잠시 후 다시 시도해 주세요.");
-                }
-                throw new IllegalStateException("AI 응답을 받아오지 못했어요. 잠시 후 다시 시도해 주세요.");
-            }
-        }
-        throw new IllegalStateException("AI 응답을 받아오지 못했어요. 잠시 후 다시 시도해 주세요.");
-    }
+    // Gemini 호출 로직 - GPT(GptClientService)로 교체하면서 주석 처리 (롤백 대비, 삭제 안 함)
+    // /**
+    //  * Gemini 호출. 429(요청 한도 초과)면 잠깐 대기 후 최대 2회 재시도.
+    //  * 그래도 실패하면 프론트가 "로그인 세션 만료"로 오인하지 않도록 IllegalStateException으로 변환.
+    //  */
+    // private JsonNode callGeminiWithRetry(Map<String, Object> requestBody) {
+    //     WebClient webClient = webClientBuilder.build();
+    //     int maxAttempts = 3;
+    //     long backoffMillis = 1500;
+    //
+    //     for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+    //         try {
+    //             return webClient.post()
+    //                     .uri(apiUrl + "?key=" + apiKey.trim())
+    //                     .bodyValue(requestBody)
+    //                     .retrieve()
+    //                     .bodyToMono(JsonNode.class)
+    //                     .block();
+    //         } catch (WebClientResponseException e) {
+    //             int statusCode = e.getStatusCode().value();
+    //             boolean isRetryable = statusCode == 429 || statusCode == 503; // 429=요청과다, 503=모델 과부하
+    //             boolean hasAttemptsLeft = attempt < maxAttempts;
+    //
+    //             System.err.println("Gemini API 호출 실패 (시도 " + attempt + "/" + maxAttempts + "): "
+    //                     + e.getStatusCode() + " " + e.getResponseBodyAsString());
+    //
+    //             if (isRetryable && hasAttemptsLeft) {
+    //                 try {
+    //                     Thread.sleep(backoffMillis * attempt); // 1.5초, 3초 ...로 점점 늘려가며 재시도
+    //                 } catch (InterruptedException ie) {
+    //                     Thread.currentThread().interrupt();
+    //                 }
+    //                 continue;
+    //             }
+    //
+    //             if (isRetryable) {
+    //                 throw new IllegalStateException("지금 AI 서버가 혼잡해서 응답이 지연되고 있어요. 잠시 후 다시 시도해 주세요.");
+    //             }
+    //             throw new IllegalStateException("AI 응답을 받아오지 못했어요. 잠시 후 다시 시도해 주세요.");
+    //         }
+    //     }
+    //     throw new IllegalStateException("AI 응답을 받아오지 못했어요. 잠시 후 다시 시도해 주세요.");
+    // }
 
     /**
      * Gemini 응답이 중간에 잘려 JSON 파싱이 실패했을 때, "reply" 필드 값만이라도

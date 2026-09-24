@@ -18,12 +18,14 @@ public class FingerDesignPlanService {
     private final WebClient.Builder webClientBuilder;
     private final ObjectMapper objectMapper;
     private final StyleTrendService styleTrendService;
+    private final GptClientService gptClientService;
 
-    @Value("${gemini.api.key}")
-    private String apiKey;
-
-    @Value("${gemini.api.url}")
-    private String apiUrl;
+    // Gemini 설정 - GPT로 교체하면서 주석 처리 (롤백 대비, 삭제 안 함)
+    // @Value("${gemini.api.key}")
+    // private String apiKey;
+    //
+    // @Value("${gemini.api.url}")
+    // private String apiUrl;
 
     private static final String SYSTEM_PROMPT = """
         당신은 네일 3D 디자인 플래너입니다.
@@ -454,38 +456,47 @@ public class FingerDesignPlanService {
                 ? ""
                 : styleTrendService.buildTrendHint(userSeason);
         String systemPrompt = String.format(SYSTEM_PROMPT, trendHint, editModeSection, confirmedInputSummary);
-        List<Map<String, Object>> parts = new ArrayList<>();
+
+        // [Gemini 방식 - 주석 처리]
+        // List<Map<String, Object>> parts = new ArrayList<>();
+        // if (imageBase64 != null && imageMimeType != null) {
+        //     parts.add(Map.of(
+        //             "inline_data", Map.of(
+        //                     "mime_type", imageMimeType,
+        //                     "data", imageBase64
+        //             )
+        //     ));
+        //     parts.add(Map.of("text", "..."));
+        // } else {
+        //     parts.add(Map.of("text", "위 정보로 5개 손가락 디자인을 생성해주세요."));
+        // }
+        //
+        // Map<String, Object> requestBody = Map.of(
+        //         "contents", List.of(Map.of("role", "user", "parts", parts)),
+        //         "systemInstruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
+        //         "generationConfig", Map.of(
+        //                 "responseMimeType", "application/json",
+        //                 "maxOutputTokens", 8192,
+        //                 "thinkingConfig", Map.of("thinkingLevel", "MEDIUM")
+        //         )
+        // );
+        //
+        // JsonNode responseNode = callGeminiWithRetry(requestBody);
+        // String text = responseNode.path("candidates").get(0)
+        //         .path("content").path("parts").get(0).path("text").asText();
+
+        //5개 손가락+파츠까지 담아야 해서 응답이 길어질 수 있으므로 토큰을 넉넉히.
+        //시스템 프롬프트에 지켜야 할 규칙(색상 개수별 처리, richness, 비호환 조합,
+        //자기검증 체크리스트 등)이 많아서 안정적인 준수를 위해 넉넉한 토큰으로 호출.
+        String userInstruction = "이 참고 이미지를 자세히 관찰해서, 색감·분위기·반복되는 모티프를 " +
+                "파악한 뒤, 시스템 프롬프트의 [사용 가능한 어휘] 목록 안에서 가장 가까운 표현으로 " +
+                "매핑해서 위 정보와 함께 5개 손가락 디자인을 생성해주세요.";
+        String text;
         if (imageBase64 != null && imageMimeType != null) {
-            parts.add(Map.of(
-                    "inline_data", Map.of(
-                            "mime_type", imageMimeType,
-                            "data", imageBase64
-                    )
-            ));
-            parts.add(Map.of("text", "이 참고 이미지를 자세히 관찰해서, 색감·분위기·반복되는 모티프를 " +
-                    "파악한 뒤, 시스템 프롬프트의 [사용 가능한 어휘] 목록 안에서 가장 가까운 표현으로 " +
-                    "매핑해서 위 정보와 함께 5개 손가락 디자인을 생성해주세요."));
+            text = gptClientService.chatWithImage(systemPrompt, userInstruction, imageBase64, imageMimeType, 8192, true);
         } else {
-            parts.add(Map.of("text", "위 정보로 5개 손가락 디자인을 생성해주세요."));
+            text = gptClientService.chat(systemPrompt, "위 정보로 5개 손가락 디자인을 생성해주세요.", 8192, true);
         }
-
-        Map<String, Object> requestBody = Map.of(
-                "contents", List.of(Map.of("role", "user", "parts", parts)),
-                "systemInstruction", Map.of("parts", List.of(Map.of("text", systemPrompt))),
-                //5개 손가락+파츠까지 담아야 해서 응답이 길어질 수 있으므로 토큰을 넉넉히.
-                //시스템 프롬프트에 지켜야 할 규칙(색상 개수별 처리, richness, 비호환 조합,
-                //자기검증 체크리스트 등)이 많아져서 LOW로는 규칙 준수가 불안정했다 → MEDIUM으로 상향.
-                "generationConfig", Map.of(
-                        "responseMimeType", "application/json",
-                        "maxOutputTokens", 8192,
-                        "thinkingConfig", Map.of("thinkingLevel", "MEDIUM")
-                )
-        );
-
-        JsonNode responseNode = callGeminiWithRetry(requestBody);
-
-        String text = responseNode.path("candidates").get(0)
-                .path("content").path("parts").get(0).path("text").asText();
 
         try {
             return objectMapper.readTree(text);
@@ -495,45 +506,46 @@ public class FingerDesignPlanService {
         }
     }
 
-    /**
-     * Gemini 호출. 429(요청 한도 초과)면 잠깐 대기 후 최대 2회 재시도.
-     */
-    private JsonNode callGeminiWithRetry(Map<String, Object> requestBody) {
-        WebClient webClient = webClientBuilder.build();
-        int maxAttempts = 3;
-        long backoffMillis = 1500;
-
-        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
-            try {
-                return webClient.post()
-                        .uri(apiUrl + "?key=" + apiKey.trim())
-                        .bodyValue(requestBody)
-                        .retrieve()
-                        .bodyToMono(JsonNode.class)
-                        .block();
-            } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
-                int statusCode = e.getStatusCode().value();
-                boolean isRetryable = statusCode == 429 || statusCode == 503; // 429=요청과다, 503=모델 과부하
-                boolean hasAttemptsLeft = attempt < maxAttempts;
-
-                System.err.println("Gemini API 호출 실패 (시도 " + attempt + "/" + maxAttempts + "): "
-                        + e.getStatusCode() + " " + e.getResponseBodyAsString());
-
-                if (isRetryable && hasAttemptsLeft) {
-                    try {
-                        Thread.sleep(backoffMillis * attempt);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                    }
-                    continue;
-                }
-
-                if (isRetryable) {
-                    throw new IllegalStateException("지금 AI 서버가 혼잡해서 디자인 플랜 생성이 지연되고 있어요. 잠시 후 다시 시도해 주세요.");
-                }
-                throw new IllegalStateException("디자인 플랜용 AI 응답을 받아오지 못했어요. 잠시 후 다시 시도해 주세요.");
-            }
-        }
-        throw new IllegalStateException("디자인 플랜용 AI 응답을 받아오지 못했어요. 잠시 후 다시 시도해 주세요.");
-    }
+    // Gemini 호출 로직 - GPT(GptClientService)로 교체하면서 주석 처리 (롤백 대비, 삭제 안 함)
+    // /**
+    //  * Gemini 호출. 429(요청 한도 초과)면 잠깐 대기 후 최대 2회 재시도.
+    //  */
+    // private JsonNode callGeminiWithRetry(Map<String, Object> requestBody) {
+    //     WebClient webClient = webClientBuilder.build();
+    //     int maxAttempts = 3;
+    //     long backoffMillis = 1500;
+    //
+    //     for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+    //         try {
+    //             return webClient.post()
+    //                     .uri(apiUrl + "?key=" + apiKey.trim())
+    //                     .bodyValue(requestBody)
+    //                     .retrieve()
+    //                     .bodyToMono(JsonNode.class)
+    //                     .block();
+    //         } catch (org.springframework.web.reactive.function.client.WebClientResponseException e) {
+    //             int statusCode = e.getStatusCode().value();
+    //             boolean isRetryable = statusCode == 429 || statusCode == 503; // 429=요청과다, 503=모델 과부하
+    //             boolean hasAttemptsLeft = attempt < maxAttempts;
+    //
+    //             System.err.println("Gemini API 호출 실패 (시도 " + attempt + "/" + maxAttempts + "): "
+    //                     + e.getStatusCode() + " " + e.getResponseBodyAsString());
+    //
+    //             if (isRetryable && hasAttemptsLeft) {
+    //                 try {
+    //                     Thread.sleep(backoffMillis * attempt);
+    //                 } catch (InterruptedException ie) {
+    //                     Thread.currentThread().interrupt();
+    //                 }
+    //                 continue;
+    //             }
+    //
+    //             if (isRetryable) {
+    //                 throw new IllegalStateException("지금 AI 서버가 혼잡해서 디자인 플랜 생성이 지연되고 있어요. 잠시 후 다시 시도해 주세요.");
+    //             }
+    //             throw new IllegalStateException("디자인 플랜용 AI 응답을 받아오지 못했어요. 잠시 후 다시 시도해 주세요.");
+    //         }
+    //     }
+    //     throw new IllegalStateException("디자인 플랜용 AI 응답을 받아오지 못했어요. 잠시 후 다시 시도해 주세요.");
+    // }
 }
