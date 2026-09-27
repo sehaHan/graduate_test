@@ -122,7 +122,12 @@ public class GptClientService {
      * GPT 호출. 429(요청 한도 초과)나 5xx(서버 오류)면 잠깐 대기 후 최대 2회 재시도.
      */
     private JsonNode callWithRetry(Map<String, Object> requestBody, String url) {
-        WebClient webClient = webClientBuilder.build();
+        // 기본 WebClient는 응답 바디를 256KB까지만 버퍼링한다. GPT Image 응답은 base64
+        // PNG 전체가 JSON 안에 들어있어서 수 MB를 넘기기 쉬우므로, 버퍼 한도를 늘려야
+        // 200 OK를 받고도 바디 디코딩 단계에서 실패하는 문제를 막을 수 있다.
+        WebClient webClient = webClientBuilder
+                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(20 * 1024 * 1024))
+                .build();
         int maxAttempts = 3;
         long backoffMillis = 1500;
 
