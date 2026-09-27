@@ -125,9 +125,11 @@ printer:
     url: https://sermon-friction-unequal.ngrok-free.dev
 
 naily:
-  # 5손톱 메인 디자인 생성은 이제 comfy-server-url(ComfyUI 브릿지)을 쓴다.
+  # 5손톱 메인 디자인 생성 이미지를 어디서 만들지 고르는 토글: comfy(기본) 또는 gptimage.
+  # 바꾸고 나서 백엔드를 재시작해야 적용됨(런타임 전환 아님).
+  image-provider: comfy
   # gen-server-url(diffusers)은 inpaint(수정 요청)와 텍스처 스와치 생성에서만 계속 쓰인다.
   gen-server-url: https://scalded-lard-seduce.ngrok-free.dev     # 생성 서버 (예서 컴퓨터, port 8000)
   detect-server-url: https://armhole-iphone-monitor.ngrok-free.dev  # 검출 서버 (학교 컴퓨터, port 8001)
-  # ComfyUI 브릿지 서버 (main_comfy.py) — 웹 화면 "디자인 생성하기"가 실제로 쓰는 서버.
+  # ComfyUI 브릿지 서버 (main_comfy.py) — image-provider: comfy일 때 쓰는 서버.
   comfy-server-url: https://scalded-lard-seduce.ngrok-free.dev
