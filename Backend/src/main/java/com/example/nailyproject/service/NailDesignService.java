@@ -1044,10 +1044,25 @@ public class NailDesignService {
             addLiked(slots, "shape", handScan.getRecommendedShape());
         }
 
-        // ★ color는 여기서 1개만 뽑아 강제로 고정하지 않는다 — summarizeSlots()가 아래에서
-        // 스캔 팔레트 전체를 "color 후보"로 GPT에 넘겨서, mood/디자인에 맞게 1~3개를 스스로
-        // 조합하도록 이미 처리하고 있다(FingerDesignPlanService의 [색상 개수별 처리] 참고).
-        // 여기서 미리 1개로 확정해버리면 그 후보 로직이 아예 건너뛰어져서 항상 단색만 나왔다.
+        // ★ color는 GPT에게 "30개 중 골라줘"로 넘기면 안 된다 — 실제로 해보니 GPT가 매번
+        // 거의 같은 색(가장 무난해 보이는 1개)을 최우선으로 고르는 편향이 있어서, 30개
+        // 팔레트를 넘겨도 첫 번째 색이 항상 똑같이 나오는 문제가 있었다. 대신 여기 Java
+        // 쪽에서 팔레트 전체(30개)에서 실제로 무작위로 1~3개를 뽑아 확정해버려서, 매
+        // 생성마다 색 조합 자체가 달라지도록 한다.
+        if (getLiked(slots, "color").isEmpty() && handScan.getRecommendedColors() != null) {
+            try {
+                List<String> palette = objectMapper.readValue(handScan.getRecommendedColors(),
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, String.class));
+                if (!palette.isEmpty()) {
+                    List<String> shuffled = new ArrayList<>(palette);
+                    Collections.shuffle(shuffled);
+                    int count = Math.min(shuffled.size(), 1 + new Random().nextInt(3)); // 1~3개
+                    for (String color : shuffled.subList(0, count)) {
+                        addLiked(slots, "color", color);
+                    }
+                }
+            } catch (JsonProcessingException ignored) {}
+        }
 
         if (getLiked(slots, "mood").isEmpty()) {
             addLiked(slots, "mood", pickDefaultMood(slots));
