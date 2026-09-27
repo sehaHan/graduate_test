@@ -801,20 +801,25 @@ public class NailDesignService {
         String userSeasonForTrend = seasonLikedForTrend.stream()
                 .filter(s -> !"none".equals(s))
                 .findFirst().orElse(null);
-        // ★ motif: none 강제 금지 규칙(FingerDesignPlanService)은 순수 옵션 선택(채팅) 기반
-        // 생성에만 적용한다 — 스캔 기반(handScan != null)이나 사진 기반(imageBase64 존재)
-        // 생성에서는 그 규칙을 빼서 기존처럼 GPT가 자유롭게 장식을 고르게 둔다.
-        boolean scanOrImageBased = handScan != null || (imageBase64 != null && !imageBase64.isBlank());
+        // ★ motif: none 강제 금지 규칙(FingerDesignPlanService)은 사진 기반(참고 이미지가
+        // 있는) 생성에서만 뺀다 — 이미지에서 관찰되는 장식은 계속 반영돼야 하기 때문.
+        // ★ 손 스캔 기록 유무(handScan)는 이 판단과 무관하다 — 예전엔 handScan != null이면
+        // 무조건 이 규칙을 껐었는데, 스캔을 완료해둔 계정이 "옵션 선택" 흐름으로 직접
+        // motif "없음"을 골라도 그 선택이 무시되는 버그가 있었다(사용자가 직접 재현/확인함).
+        // scanId가 프론트에서 매 요청마다 자동으로 함께 오는 경우가 있어서, handScan 존재
+        // 여부만으로는 "이번 생성이 스캔 기반 흐름인지"를 판단할 수 없다.
+        boolean hasImage = imageBase64 != null && !imageBase64.isBlank();
         JsonNode plan = fingerDesignPlanService.generatePlan(
-                summary, imageBase64, imageMimeType, previousPlanJson, userSeasonForTrend, scanOrImageBased);
+                summary, imageBase64, imageMimeType, previousPlanJson, userSeasonForTrend);
 
         // ★ 시스템 프롬프트 지시(MOTIF_NONE_RESTRICTION)만으로는 GPT가 여전히 pearl
         // bead/rhinestone 등을 채워 넣는 경우가 실제로 재현됐다 — 프롬프트 지시는
         // 강제가 아니라 "권장"에 가깝기 때문. 옵션 선택으로 motif "없음"/"none"을
-        // 명시적으로 고른 경우(스캔/사진 기반 제외)엔 Java 쪽에서 plan을 직접
-        // 후처리해서 motif/parts를 무조건 비워버린다.
-        boolean motifExplicitlyDeclined = !scanOrImageBased && getLiked(slots, "motif").stream()
-                .anyMatch(v -> v != null && (v.trim().equalsIgnoreCase("none") || v.trim().equals("없음")));
+        // 명시적으로 고른 경우(사진 기반 제외)엔 Java 쪽에서 plan을 직접 후처리해서
+        // motif/parts를 무조건 비워버린다. GPT가 저장한 값이 정확히 "none"이 아니라
+        // "핵심 요소 없음"처럼 부가 설명이 붙었을 수도 있어서 contains로 느슨하게 검사한다.
+        boolean motifExplicitlyDeclined = !hasImage && getLiked(slots, "motif").stream()
+                .anyMatch(v -> v != null && (v.trim().toLowerCase().contains("none") || v.contains("없음")));
         stripMotifPartsIfExplicitlyDeclined(plan, motifExplicitlyDeclined);
 
         if (session != null) {

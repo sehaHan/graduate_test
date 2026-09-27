@@ -514,9 +514,11 @@ public class FingerDesignPlanService {
         """;
 
     // ★ motif: none(핵심 요소 "없음")일 때 motif/parts를 절대 추가하지 말라는 지시.
-    // 오직 옵션 선택(채팅) 기반 생성에만 적용한다 — 스캔 기반/사진 기반 생성에서는
-    // 이 문단 자체를 아예 안 넣어서, 기존처럼 GPT가 자유롭게 장식을 고르게 둔다
-    // (사용자 요청: "스캔 기반, 사진 기반은 아무 영향을 받지 말아야 해").
+    // 참고 이미지가 있는 생성(사진 기반)에서는 이 문단 자체를 아예 안 넣어서, 이미지에서
+    // 관찰되는 장식을 기존처럼 자유롭게 반영하게 둔다. 스캔 여부(손 스캔 기록 존재)는
+    // 이 판단과 무관하다 — 스캔 기록이 있는 계정도 옵션 선택/채팅으로 직접 motif "없음"을
+    // 고르면 그 선택이 그대로 지켜져야 하기 때문에(사용자 확인: "오로지 선택지 기반에만
+    // 적용되는 사항"), handScan 유무로 이 규칙을 끄지 않는다.
     private static final String MOTIF_NONE_RESTRICTION = """
         ★ "명시적으로 없음" 선택 - 매우 중요, 절대 어기면 안 됨: [확정된 입력 정보]에
         motif: none(또는 "없음", "핵심 요소 없음")처럼 사용자가 명시적으로 motif/parts를
@@ -535,7 +537,7 @@ public class FingerDesignPlanService {
      * 참고 이미지 없이 플랜 생성
      */
     public JsonNode generatePlan(String confirmedInputSummary) {
-        return generatePlan(confirmedInputSummary, null, null, null, null, false);
+        return generatePlan(confirmedInputSummary, null, null, null, null);
     }
 
     /**
@@ -544,15 +546,11 @@ public class FingerDesignPlanService {
      * @param imageMimeType 예: "image/jpeg", "image/png"
      */
     public JsonNode generatePlan(String confirmedInputSummary, String imageBase64, String imageMimeType) {
-        return generatePlan(confirmedInputSummary, imageBase64, imageMimeType, null, null, false);
+        return generatePlan(confirmedInputSummary, imageBase64, imageMimeType, null, null);
     }
 
     public JsonNode generatePlan(String confirmedInputSummary, String imageBase64, String imageMimeType, String previousPlanJson) {
-        return generatePlan(confirmedInputSummary, imageBase64, imageMimeType, previousPlanJson, null, false);
-    }
-
-    public JsonNode generatePlan(String confirmedInputSummary, String imageBase64, String imageMimeType, String previousPlanJson, String userSeason) {
-        return generatePlan(confirmedInputSummary, imageBase64, imageMimeType, previousPlanJson, userSeason, false);
+        return generatePlan(confirmedInputSummary, imageBase64, imageMimeType, previousPlanJson, null);
     }
 
     /**
@@ -561,11 +559,9 @@ public class FingerDesignPlanService {
      * 이걸 안 넘기면(=previousPlanJson이 null) 매번 완전히 새로 창작하듯 플랜을 만들어서,
      * "새끼손가락에 파츠 하나만 추가해줘" 같은 사소한 수정에도 5개 손가락이 전부 바뀌어버렸다.
      *
-     * @param scanOrImageBased 손 스캔 기반 또는 참고 이미지 기반 생성이면 true.
-     *                         이 경우 motif: none이어도 MOTIF_NONE_RESTRICTION을 적용하지 않는다.
      */
     public JsonNode generatePlan(String confirmedInputSummary, String imageBase64, String imageMimeType,
-                                  String previousPlanJson, String userSeason, boolean scanOrImageBased) {
+                                  String previousPlanJson, String userSeason) {
 
         String editModeSection = "";
         if (previousPlanJson != null && !previousPlanJson.isBlank()) {
@@ -602,7 +598,7 @@ public class FingerDesignPlanService {
         // ★ 사진 기반 생성일 때는 트렌드 힌트 제외 (이미지 색감 우선)
         boolean hasImage = imageBase64 != null && !imageBase64.isBlank();
         String trendHint = hasImage ? "" : styleTrendService.buildTrendHint(userSeason);
-        String motifNoneRestriction = (scanOrImageBased || hasImage) ? "" : MOTIF_NONE_RESTRICTION;
+        String motifNoneRestriction = hasImage ? "" : MOTIF_NONE_RESTRICTION;
         String systemPrompt = String.format(SYSTEM_PROMPT, trendHint, motifNoneRestriction, editModeSection, confirmedInputSummary);
 
         // [Gemini 방식 - 주석 처리]
