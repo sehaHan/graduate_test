@@ -118,6 +118,17 @@ public class FingerDesignPlanService {
         french tip, gradient, cheek blush, marble, polka dot, plaid, stripe, line art,
         color block, lace, watercolor, speckle
 
+        ★ marble 표현 주의 - 매우 중요: marble은 "실제 대리석 원석"이 아니라 네일아트의
+        마블링 기법(글로시 젤 폴리시 위에 두세 가지 색을 붓이나 도팅툴로 섞어서 만드는
+        추상적인 소용돌이 무늬)을 뜻합니다. description에 marble을 쓸 때 "stone-like
+        texture", "natural stone", "granite/marble slab", "geological veining"처럼
+        실제 돌 재질로 읽히는 표현은 쓰지 마세요 — 네일 폴리시 위에 그려진 얇고
+        매끈한 소용돌이/마블링 붓터치처럼 들려야 합니다. 대신 "swirled marble-effect
+        nail art", "marbled gel polish swirls blending A and B", "thin marbled veining
+        painted over a glossy polish base"처럼, "nail art"/"gel polish"/"painted"/
+        "swirl" 같은 단어와 함께 써서 손톱 위에 그려진 디자인이라는 게 분명하게
+        드러나야 합니다.
+
         motif (손가락별 motif 배열, 세트 전체에서 서로 다른 값 0~5개, 없으면 빈 배열):
         bow ribbon, star, heart, flower, butterfly, cross, bunny, leaf, shell, character, lettering
 
@@ -349,6 +360,10 @@ public class FingerDesignPlanService {
             그 장식이 손톱 일부에만 국한된다는 것이 문장에서 명확한가? (범위 한정 없이
             "striking chrome tip accent"처럼만 쓰여 있다면, "along just the tip
             edge" 같은 구체적 범위 표현을 추가해서 고칠 것.)
+        14) marble을 쓴 손가락이 있다면, description에 "stone", "granite", "geological"
+            같은 실제 돌 재질로 읽히는 단어가 남아있지 않은가? 대신 "nail art"/"gel
+            polish"/"painted"/"swirl" 중 하나 이상이 그 문장에 포함되어, 손톱 위에
+            그려진 마블링 디자인이라는 게 분명한가? (그렇지 않다면 다시 써서 고칠 것.)
         하나라도 어긋나면 해당 손가락(들)을 다시 써서 고친 뒤에 최종 JSON을 출력하세요.
 
         [surface-finish 비호환 규칙 - 매우 중요]
