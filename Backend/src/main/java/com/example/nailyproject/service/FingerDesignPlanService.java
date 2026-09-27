@@ -118,16 +118,26 @@ public class FingerDesignPlanService {
         french tip, gradient, cheek blush, marble, polka dot, plaid, stripe, line art,
         color block, lace, watercolor, speckle
 
-        ★ marble 표현 주의 - 매우 중요: marble은 "실제 대리석 원석"이 아니라 네일아트의
-        마블링 기법(글로시 젤 폴리시 위에 두세 가지 색을 붓이나 도팅툴로 섞어서 만드는
-        추상적인 소용돌이 무늬)을 뜻합니다. description에 marble을 쓸 때 "stone-like
-        texture", "natural stone", "granite/marble slab", "geological veining"처럼
-        실제 돌 재질로 읽히는 표현은 쓰지 마세요 — 네일 폴리시 위에 그려진 얇고
-        매끈한 소용돌이/마블링 붓터치처럼 들려야 합니다. 대신 "swirled marble-effect
-        nail art", "marbled gel polish swirls blending A and B", "thin marbled veining
-        painted over a glossy polish base"처럼, "nail art"/"gel polish"/"painted"/
-        "swirl" 같은 단어와 함께 써서 손톱 위에 그려진 디자인이라는 게 분명하게
-        드러나야 합니다.
+        ★ marble 표현 주의 - 매우 중요, 반드시 지킬 것: 사용자가 실제로 원하는 marble은
+        회색/흰색 줄무늬가 선명하게 갈라지는 진짜 대리석 돌 질감이 아니라, 요즘 한국
+        네일샵에서 유행하는 "오로라/아우라 마블" 느낌입니다 — 2~3가지 연한 색이 손톱
+        위에서 경계 없이 부드럽게 번지고 스며든 듯한, 흐릿하고 몽환적인 컬러 웜이나
+        구름처럼 퍼진 색감입니다. 뚜렷한 선이나 결(vein)이 보이는 게 아니라, 마치
+        물감이 젖은 채로 자연스럽게 퍼진 것처럼 색과 색 사이 경계가 흐릿하게 블렌딩되어
+        있어야 합니다.
+        - description 문장에는 "marble", "vein(ed/ing)", "stone", "granite",
+          "geological", "slab"이라는 단어를 절대 쓰지 마세요 (이미지 생성 모델이 이
+          단어들을 보면 돌/암석 질감으로 그리는 경향이 실제로 있었습니다 — 문장에
+          "nail art"라고 덧붙여도 이 단어들이 남아있으면 여전히 돌처럼 나옵니다).
+        - 대신 이런 식으로 색과 블렌딩 방식만으로 묘사하세요: "soft aura-blend of
+          milky lavender and dusty pink melting softly into each other with hazy,
+          diffused edges", "a dreamy watercolor-like wash where pale mint and blush
+          pink blur softly together with no hard lines", "cloudy, translucent color
+          patches that blend gently across the glossy jelly base, like softly
+          diffused ink in water". 핵심 단어: "soft/hazy/diffused/blurred edges",
+          "blend/blur/melt into each other", "cloudy/dreamy/translucent". 뚜렷한
+          "swirl", "streak", "line" 같은 표현도 줄무늬처럼 보일 수 있으니 되도록
+          피하고, 색이 "번지고 스며드는" 쪽으로 묘사하세요.
 
         motif (손가락별 motif 배열, 세트 전체에서 서로 다른 값 0~5개, 없으면 빈 배열):
         bow ribbon, star, heart, flower, butterfly, cross, bunny, leaf, shell, character, lettering
@@ -360,10 +370,12 @@ public class FingerDesignPlanService {
             그 장식이 손톱 일부에만 국한된다는 것이 문장에서 명확한가? (범위 한정 없이
             "striking chrome tip accent"처럼만 쓰여 있다면, "along just the tip
             edge" 같은 구체적 범위 표현을 추가해서 고칠 것.)
-        14) marble을 쓴 손가락이 있다면, description에 "stone", "granite", "geological"
-            같은 실제 돌 재질로 읽히는 단어가 남아있지 않은가? 대신 "nail art"/"gel
-            polish"/"painted"/"swirl" 중 하나 이상이 그 문장에 포함되어, 손톱 위에
-            그려진 마블링 디자인이라는 게 분명한가? (그렇지 않다면 다시 써서 고칠 것.)
+        14) marble을 쓴 손가락이 있다면, description에 "marble", "vein(ed/ing)",
+            "stone", "granite", "geological", "slab" 단어가 하나라도 남아있지
+            않은가? 대신 "soft/hazy/diffused/blurred", "blend/blur/melt into
+            each other", "cloudy/dreamy/translucent" 계열 표현으로, 색이 흐릿하게
+            번지고 스며드는 오로라 마블 느낌이 되어 있는가? (돌 재질 단어가 남아있거나
+            뚜렷한 선/결로 묘사되어 있다면 반드시 다시 써서 고칠 것.)
         하나라도 어긋나면 해당 손가락(들)을 다시 써서 고친 뒤에 최종 JSON을 출력하세요.
 
         [surface-finish 비호환 규칙 - 매우 중요]
