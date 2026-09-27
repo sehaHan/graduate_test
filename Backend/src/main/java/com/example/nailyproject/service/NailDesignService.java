@@ -1018,12 +1018,24 @@ public class NailDesignService {
         return parts;
     }
 
+    // ★ 사용자가 mood를 안 골랐을 때(특히 스캔 기반 흐름)의 기본값 후보 풀.
+    // 예전엔 무조건 "simple"로 고정해서 [design richness]의 "심플 예외"가 항상 걸리는 바람에
+    // 5개 손가락이 색상 문구만 다른 거의 동일한 디자인으로만 나왔다. simple도 여전히
+    // 후보에 남겨두되(가끔은 심플해도 되니까), 매번 강제되지 않도록 무작위로 고른다.
+    private static final List<String> DEFAULT_MOOD_POOL = List.of(
+            "chic", "elegant", "cute", "lovely", "delicate", "modern", "pure", "feminine", "simple"
+    );
+
+    private String pickDefaultMood(Map<String, SlotData> slots) {
+        String designType = getLiked(slots, "designType").isEmpty() ? null : getLiked(slots, "designType").get(0);
+        if ("glitter".equals(designType) || "marble".equals(designType)) return "chic";
+        return DEFAULT_MOOD_POOL.get(new Random().nextInt(DEFAULT_MOOD_POOL.size()));
+    }
+
     private void fillMissingFromScan(Map<String, SlotData> slots, HandScan handScan) {
         if (handScan == null) {
             if (getLiked(slots, "mood").isEmpty()) {
-                String designType = getLiked(slots, "designType").isEmpty() ? null : getLiked(slots, "designType").get(0);
-                String defaultMood = ("glitter".equals(designType) || "marble".equals(designType)) ? "chic" : "simple";
-                addLiked(slots, "mood", defaultMood);
+                addLiked(slots, "mood", pickDefaultMood(slots));
             }
             return;
         }
@@ -1032,21 +1044,13 @@ public class NailDesignService {
             addLiked(slots, "shape", handScan.getRecommendedShape());
         }
 
-        if (getLiked(slots, "color").isEmpty() && handScan.getRecommendedColors() != null) {
-            try {
-                List<String> palette = objectMapper.readValue(handScan.getRecommendedColors(),
-                        objectMapper.getTypeFactory().constructCollectionType(List.class, String.class));
-                if (!palette.isEmpty()) {
-                    String randomColor = palette.get(new Random().nextInt(palette.size()));
-                    addLiked(slots, "color", randomColor);
-                }
-            } catch (JsonProcessingException ignored) {}
-        }
+        // ★ color는 여기서 1개만 뽑아 강제로 고정하지 않는다 — summarizeSlots()가 아래에서
+        // 스캔 팔레트 전체를 "color 후보"로 GPT에 넘겨서, mood/디자인에 맞게 1~3개를 스스로
+        // 조합하도록 이미 처리하고 있다(FingerDesignPlanService의 [색상 개수별 처리] 참고).
+        // 여기서 미리 1개로 확정해버리면 그 후보 로직이 아예 건너뛰어져서 항상 단색만 나왔다.
 
         if (getLiked(slots, "mood").isEmpty()) {
-            String designType = getLiked(slots, "designType").isEmpty() ? null : getLiked(slots, "designType").get(0);
-            String defaultMood = ("glitter".equals(designType) || "marble".equals(designType)) ? "chic" : "simple";
-            addLiked(slots, "mood", defaultMood);
+            addLiked(slots, "mood", pickDefaultMood(slots));
         }
     }
 
