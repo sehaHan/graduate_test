@@ -47,6 +47,7 @@ public class NailDesignService {
     private final NailDetectionService nailDetectionService;
     private final TextureExtractService textureExtractService;
     private final TextureSwatchService textureSwatchService;
+    private final GptClientService gptClientService;
     // 색상
 //    private final JsonColorMapper jsonColorMapper;
 
@@ -84,6 +85,11 @@ public class NailDesignService {
     @org.springframework.beans.factory.annotation.Value("${analysis.server.url:http://localhost:8000}")
     private String analysisServerUrl;
 
+    // "디자인 생성하기"가 실제 이미지를 어디서 만들지 고르는 토글. comfy(기본) 또는 gptimage.
+    // application.yml의 naily.image-provider로 바꾸고 재시작하면 됨(런타임 전환 아님).
+    @org.springframework.beans.factory.annotation.Value("${naily.image-provider:comfy}")
+    private String imageProvider;
+
     public NailDesignService(NailDesignRepository nailDesignRepository,
                              UserRepository userRepository,
                              DesignSessionRepository designSessionRepository,
@@ -98,7 +104,8 @@ public class NailDesignService {
                              NailImageService nailImageService,
                              NailDetectionService nailDetectionService,
                              TextureExtractService textureExtractService,
-                             TextureSwatchService textureSwatchService) {
+                             TextureSwatchService textureSwatchService,
+                             GptClientService gptClientService) {
         this.nailDesignRepository = nailDesignRepository;
         this.userRepository = userRepository;
         this.designSessionRepository = designSessionRepository;
@@ -114,6 +121,7 @@ public class NailDesignService {
         this.nailDetectionService = nailDetectionService;
         this.textureExtractService = textureExtractService;
         this.textureSwatchService = textureSwatchService;
+        this.gptClientService = gptClientService;
         this.restTemplate = new RestTemplate();
         this.objectMapper = new ObjectMapper();
     }
@@ -167,8 +175,8 @@ public class NailDesignService {
     private static final long COMFY_FIXED_SEED = 258936135452521L;
 
     /**
-     * ★ 핵심 교체: diffusers gen 서버 → ComfyUI 브릿지 서버(main_comfy.py)
-     * - nailImageService.generateNailImageViaComfy() 로 이미지 base64 취득
+     * ★ 핵심 교체: diffusers gen 서버 → ComfyUI 브릿지 서버(main_comfy.py) / GPT Image 2.5 Sunburst
+     * naily.image-provider 설정값(comfy 또는 gptimage)에 따라 실제 이미지를 만드는 서버가 갈린다.
      * - S3 업로드
      * - nailDetectionService.extractColorsPerNail() 로 컬러 팔레트 추출
      */
@@ -176,9 +184,20 @@ public class NailDesignService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
 
-        // 1. ComfyUI 브릿지 서버에서 이미지 생성 (base64 반환). seed는 브릿지 서버에
-        //    고정값으로 박혀있어 요청으로 보내지 않는다.
-        String imageBase64 = nailImageService.generateNailImageViaComfy(prompt);
+        // 1. 설정된 provider로 이미지 생성 (base64 반환)
+        String imageBase64;
+        String aiModel;
+        Long seed;
+        if ("gptimage".equalsIgnoreCase(imageProvider)) {
+            imageBase64 = gptClientService.generateImage(prompt, "1536x1024", "auto");
+            aiModel = "gpt-image-2.5-sunburst";
+            seed = null; // OpenAI 이미지 생성 API는 seed 개념이 없음(재현 불가)
+        } else {
+            // seed는 ComfyUI 브릿지 서버에 고정값으로 박혀있어 요청으로 보내지 않는다.
+            imageBase64 = nailImageService.generateNailImageViaComfy(prompt);
+            aiModel = "comfyui (main_comfy.py bridge)";
+            seed = COMFY_FIXED_SEED;
+        }
 
         // 2. base64 → bytes → S3 업로드
         byte[] imageBytes = Base64.getDecoder().decode(imageBase64);
@@ -195,14 +214,14 @@ public class NailDesignService {
                 .session(session)
                 .imageUrls(new ArrayList<>(List.of(s3Url)))
                 .promptSummary(prompt)
-                .aiModel("comfyui (main_comfy.py bridge)")
+                .aiModel(aiModel)
                 .status(NailDesign.DesignStatus.DRAFT)
                 .nailTipCropsJson(nailTipCropsJson)
-                .seed(COMFY_FIXED_SEED)
+                .seed(seed)
                 .build();
 
         NailDesign saved = nailDesignRepository.save(design);
-        System.out.println("[NailDesignService] designId=" + saved.getId() + " seed=" + COMFY_FIXED_SEED + " (comfy fixed)");
+        System.out.println("[NailDesignService] designId=" + saved.getId() + " provider=" + imageProvider + " seed=" + seed);
         return saved;
     }
 
