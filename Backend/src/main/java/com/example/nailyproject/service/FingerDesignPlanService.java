@@ -419,6 +419,20 @@ public class FingerDesignPlanService {
         (★ 예외: 위 [참고 이미지 우선순위]에 따라, 참고 이미지에서 실제로 관찰되는
         motif/parts는 이 제약과 무관하게 반영할 수 있습니다.)
 
+        ★ "명시적으로 없음" 선택 - 매우 중요, 절대 어기면 안 됨: [확정된 입력 정보]에
+        motif: none(또는 "없음", "핵심 요소 없음")처럼 사용자가 명시적으로 motif/parts를
+        안 쓰겠다고 선택한 경우는, 바로 위의 "아예 선택하지 않음"(=사용자가 아무 말도
+        안 해서 입력 정보에 그 카테고리 자체가 없는 경우)과 전혀 다릅니다 — 이건
+        "자유롭게 골라도 된다"가 아니라 "절대 넣지 말라"는 명시적 지시로 취급하세요.
+        rhinestone, pearl bead, pearl trim, bow charm 3d, star charm, heart charm,
+        metal stud, chain, bow ribbon, star, heart, flower, butterfly, cross, bunny,
+        leaf, shell, character, lettering 중 어떤 것도 5개 손가락 어디에도 motif/parts
+        배열이나 description 문장에 등장하면 안 됩니다. [design richness]가 다양성을
+        채우기 위해서도, 아래 [mood → 추가 후보] 표에 motif/parts 항목이 있더라도
+        절대 추가하지 마세요 — 이 경우 다양성은 오직 finish/pattern 조합과 description의
+        색감·수식어 표현만으로 만드세요. (★ 예외는 여기서도 동일합니다: 참고 이미지에
+        실제로 관찰되는 motif/parts는 반영 가능합니다.)
+
         ★ "구체 아이템 없는 일반 기법 선택" 예외 - 매우 중요: [확정된 입력 정보]의
         designType(디자인 기법)에 "파츠"처럼 구체적인 아이템명이 아니라 카테고리
         자체를 가리키는 값이 있을 수 있습니다 (예: "파츠" = 어떤 parts를 쓸지는 안
