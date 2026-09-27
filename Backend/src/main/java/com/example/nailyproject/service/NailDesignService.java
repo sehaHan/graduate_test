@@ -1175,6 +1175,14 @@ public class NailDesignService {
                 .append("All five nail tips are ").append(shape)
                 .append("-shaped press-on nails").append(getShapeProportion(shape))
                 .append(". Keep the shape consistent across all five nails.");
+        // ★ 방향 고정: 쉐입마다(스틸레토 뾰족한 끝, 발레리나/코핀 평평한 끝 등) 팁이
+        // 위/아래로 랜덤하게 나오던 문제 — 모든 손톱이 동일하게 "팁(프리엣지)은 위,
+        // 큐티클 쪽 넓은 끝은 아래"를 향하도록 명시해서 방향을 고정한다.
+        sb.append(" Every nail tip is oriented vertically the same way: the tip end")
+                .append(" (the pointed, tapered, or flat free edge, depending on the shape)")
+                .append(" points straight up toward the top of the frame, and the wider")
+                .append(" cuticle end is at the bottom. Do not rotate or flip any nail —")
+                .append(" all five must share this exact same up/down orientation.");
         sb.append("\n\n");
 
         List<String> collectedFinishes = new ArrayList<>();
