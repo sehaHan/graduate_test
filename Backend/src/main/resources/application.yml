@@ -95,6 +95,10 @@ openai:
     key: ${OPENAI_API_KEY:}
     url: https://api.openai.com/v1/chat/completions
     model: gpt-4.1
+    # 아래 둘은 이미지 "생성" 전용(테스트 경로: POST /designs/test-gptimage-generate).
+    # 코드 기본값과 동일해서 생략해도 되지만, 명시적으로 바꾸고 싶으면 여기서 오버라이드.
+    # image-url: https://api.openai.com/v1/images/generations
+    # image-model: gpt-image-2.5-sunburst
 
 
 cloud:
