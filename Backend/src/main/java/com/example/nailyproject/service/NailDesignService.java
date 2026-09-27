@@ -800,7 +800,12 @@ public class NailDesignService {
         String userSeasonForTrend = seasonLikedForTrend.stream()
                 .filter(s -> !"none".equals(s))
                 .findFirst().orElse(null);
-        JsonNode plan = fingerDesignPlanService.generatePlan(summary, imageBase64, imageMimeType, previousPlanJson, userSeasonForTrend);
+        // ★ motif: none 강제 금지 규칙(FingerDesignPlanService)은 순수 옵션 선택(채팅) 기반
+        // 생성에만 적용한다 — 스캔 기반(handScan != null)이나 사진 기반(imageBase64 존재)
+        // 생성에서는 그 규칙을 빼서 기존처럼 GPT가 자유롭게 장식을 고르게 둔다.
+        boolean scanOrImageBased = handScan != null || (imageBase64 != null && !imageBase64.isBlank());
+        JsonNode plan = fingerDesignPlanService.generatePlan(
+                summary, imageBase64, imageMimeType, previousPlanJson, userSeasonForTrend, scanOrImageBased);
 
         if (session != null) {
             backfillSlotsFromPlan(slots, plan);

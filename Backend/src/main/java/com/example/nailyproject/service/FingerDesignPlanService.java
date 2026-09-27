@@ -419,19 +419,7 @@ public class FingerDesignPlanService {
         (★ 예외: 위 [참고 이미지 우선순위]에 따라, 참고 이미지에서 실제로 관찰되는
         motif/parts는 이 제약과 무관하게 반영할 수 있습니다.)
 
-        ★ "명시적으로 없음" 선택 - 매우 중요, 절대 어기면 안 됨: [확정된 입력 정보]에
-        motif: none(또는 "없음", "핵심 요소 없음")처럼 사용자가 명시적으로 motif/parts를
-        안 쓰겠다고 선택한 경우는, 바로 위의 "아예 선택하지 않음"(=사용자가 아무 말도
-        안 해서 입력 정보에 그 카테고리 자체가 없는 경우)과 전혀 다릅니다 — 이건
-        "자유롭게 골라도 된다"가 아니라 "절대 넣지 말라"는 명시적 지시로 취급하세요.
-        rhinestone, pearl bead, pearl trim, bow charm 3d, star charm, heart charm,
-        metal stud, chain, bow ribbon, star, heart, flower, butterfly, cross, bunny,
-        leaf, shell, character, lettering 중 어떤 것도 5개 손가락 어디에도 motif/parts
-        배열이나 description 문장에 등장하면 안 됩니다. [design richness]가 다양성을
-        채우기 위해서도, 아래 [mood → 추가 후보] 표에 motif/parts 항목이 있더라도
-        절대 추가하지 마세요 — 이 경우 다양성은 오직 finish/pattern 조합과 description의
-        색감·수식어 표현만으로 만드세요. (★ 예외는 여기서도 동일합니다: 참고 이미지에
-        실제로 관찰되는 motif/parts는 반영 가능합니다.)
+        %s
 
         ★ "구체 아이템 없는 일반 기법 선택" 예외 - 매우 중요: [확정된 입력 정보]의
         designType(디자인 기법)에 "파츠"처럼 구체적인 아이템명이 아니라 카테고리
@@ -525,11 +513,29 @@ public class FingerDesignPlanService {
 
         """;
 
+    // ★ motif: none(핵심 요소 "없음")일 때 motif/parts를 절대 추가하지 말라는 지시.
+    // 오직 옵션 선택(채팅) 기반 생성에만 적용한다 — 스캔 기반/사진 기반 생성에서는
+    // 이 문단 자체를 아예 안 넣어서, 기존처럼 GPT가 자유롭게 장식을 고르게 둔다
+    // (사용자 요청: "스캔 기반, 사진 기반은 아무 영향을 받지 말아야 해").
+    private static final String MOTIF_NONE_RESTRICTION = """
+        ★ "명시적으로 없음" 선택 - 매우 중요, 절대 어기면 안 됨: [확정된 입력 정보]에
+        motif: none(또는 "없음", "핵심 요소 없음")처럼 사용자가 명시적으로 motif/parts를
+        안 쓰겠다고 선택한 경우는, 바로 위의 "아예 선택하지 않음"(=사용자가 아무 말도
+        안 해서 입력 정보에 그 카테고리 자체가 없는 경우)과 전혀 다릅니다 — 이건
+        "자유롭게 골라도 된다"가 아니라 "절대 넣지 말라"는 명시적 지시로 취급하세요.
+        rhinestone, pearl bead, pearl trim, bow charm 3d, star charm, heart charm,
+        metal stud, chain, bow ribbon, star, heart, flower, butterfly, cross, bunny,
+        leaf, shell, character, lettering 중 어떤 것도 5개 손가락 어디에도 motif/parts
+        배열이나 description 문장에 등장하면 안 됩니다. [design richness]가 다양성을
+        채우기 위해서도, 아래 [mood → 추가 후보] 표에 motif/parts 항목이 있더라도
+        절대 추가하지 마세요 — 이 경우 다양성은 오직 finish/pattern 조합과 description의
+        색감·수식어 표현만으로 만드세요.""";
+
     /**
      * 참고 이미지 없이 플랜 생성
      */
     public JsonNode generatePlan(String confirmedInputSummary) {
-        return generatePlan(confirmedInputSummary, null, null, null, null);
+        return generatePlan(confirmedInputSummary, null, null, null, null, false);
     }
 
     /**
@@ -538,11 +544,15 @@ public class FingerDesignPlanService {
      * @param imageMimeType 예: "image/jpeg", "image/png"
      */
     public JsonNode generatePlan(String confirmedInputSummary, String imageBase64, String imageMimeType) {
-        return generatePlan(confirmedInputSummary, imageBase64, imageMimeType, null, null);
+        return generatePlan(confirmedInputSummary, imageBase64, imageMimeType, null, null, false);
     }
 
     public JsonNode generatePlan(String confirmedInputSummary, String imageBase64, String imageMimeType, String previousPlanJson) {
-        return generatePlan(confirmedInputSummary, imageBase64, imageMimeType, previousPlanJson, null);
+        return generatePlan(confirmedInputSummary, imageBase64, imageMimeType, previousPlanJson, null, false);
+    }
+
+    public JsonNode generatePlan(String confirmedInputSummary, String imageBase64, String imageMimeType, String previousPlanJson, String userSeason) {
+        return generatePlan(confirmedInputSummary, imageBase64, imageMimeType, previousPlanJson, userSeason, false);
     }
 
     /**
@@ -550,8 +560,12 @@ public class FingerDesignPlanService {
      * 사용자가 요청한 부분만 바꾸고 나머지 손가락/필드는 이전 문구를 그대로 유지하도록 한다.
      * 이걸 안 넘기면(=previousPlanJson이 null) 매번 완전히 새로 창작하듯 플랜을 만들어서,
      * "새끼손가락에 파츠 하나만 추가해줘" 같은 사소한 수정에도 5개 손가락이 전부 바뀌어버렸다.
+     *
+     * @param scanOrImageBased 손 스캔 기반 또는 참고 이미지 기반 생성이면 true.
+     *                         이 경우 motif: none이어도 MOTIF_NONE_RESTRICTION을 적용하지 않는다.
      */
-    public JsonNode generatePlan(String confirmedInputSummary, String imageBase64, String imageMimeType, String previousPlanJson, String userSeason) {
+    public JsonNode generatePlan(String confirmedInputSummary, String imageBase64, String imageMimeType,
+                                  String previousPlanJson, String userSeason, boolean scanOrImageBased) {
 
         String editModeSection = "";
         if (previousPlanJson != null && !previousPlanJson.isBlank()) {
@@ -586,10 +600,10 @@ public class FingerDesignPlanService {
         }
 
         // ★ 사진 기반 생성일 때는 트렌드 힌트 제외 (이미지 색감 우선)
-        String trendHint = (imageBase64 != null && !imageBase64.isBlank())
-                ? ""
-                : styleTrendService.buildTrendHint(userSeason);
-        String systemPrompt = String.format(SYSTEM_PROMPT, trendHint, editModeSection, confirmedInputSummary);
+        boolean hasImage = imageBase64 != null && !imageBase64.isBlank();
+        String trendHint = hasImage ? "" : styleTrendService.buildTrendHint(userSeason);
+        String motifNoneRestriction = (scanOrImageBased || hasImage) ? "" : MOTIF_NONE_RESTRICTION;
+        String systemPrompt = String.format(SYSTEM_PROMPT, trendHint, motifNoneRestriction, editModeSection, confirmedInputSummary);
 
         // [Gemini 방식 - 주석 처리]
         // List<Map<String, Object>> parts = new ArrayList<>();
