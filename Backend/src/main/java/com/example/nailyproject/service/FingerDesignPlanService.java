@@ -228,6 +228,23 @@ public class FingerDesignPlanService {
           수식어를 다르게 써서 각 손가락이 실제로 달라 보이게 하세요.
         - "no", "not", "without" 같은 부정어는 description에 쓰지 마세요 (부정 표현은
           Java 쪽에서 별도로 처리합니다).
+        - ★ motif/parts 이름을 그대로 쓰세요 (매우 중요): 예를 들어 heart를 골랐다면
+          description에도 반드시 "heart"라는 단어가 그대로 들어가야 하고, flower나
+          star 같은 다른 모티프 단어로 바꿔 쓰거나 heart를 더 큰 꽃 장식의 일부로
+          축소시키는 묘사는 금지입니다. 이미지 생성 모델이 description의 모티프
+          단어를 다른 모티프로 창작해서 바꿔버리는 사고가 실제로 있었으므로, 그 모티프가
+          장식의 "주인공"이라는 점이 문장에서 분명히 드러나야 합니다(예: "a small
+          heart charm as the centerpiece", "Add a delicate heart charm accent" — 다른
+          모티프에 파묻혀 배경처럼 묘사되면 안 됩니다).
+        - ★ 장식의 위치/범위를 구체적으로 한정하세요 (매우 중요): "tip accent",
+          "edge detail"처럼 위치를 한정하는 표현을 쓸 때는 실제로 그 부분에만 장식이
+          국한된다는 것이 문장에서 명확해야 합니다. 예: "a chrome accent along just
+          the very tip edge, covering only the bottom of the nail" (O — 범위가
+          분명함), "a striking chrome tip accent"만 쓰고 범위를 안 밝히는 것(X — 이미지
+          생성 모델이 손톱 절반 이상을 크롬으로 덮어버리는 경우가 실제로 있었음)은
+          피하세요. color block처럼 손톱을 크게 가르는 패턴과, tip/edge처럼 국소적인
+          장식을 같은 손가락에 같이 쓸 때는 특히 "손톱의 일부에만"이라는 위치 표현을
+          빠뜨리지 마세요.
 
         [design richness - 다양성 필수, 결정론적 규칙]
         사용자가 명시적으로 "심플하게"/"simple" mood를 선택했다면: 아무것도 추가하지
@@ -323,6 +340,15 @@ public class FingerDesignPlanService {
         11) 각 손가락 description에 top-level surface와 모순되는 마감 단어가 섞여 있지
             않은가? (surface가 glossy인데 "matte"가, matte인데 "glossy"가 같은 문장에
             들어있다면 명백한 오류이니 반드시 고칠 것.)
+        12) motif/parts 배열에 넣은 단어가 description 문장에도 정확히 같은 단어로
+            등장하는가, 그리고 그 문장에서 다른 모티프 단어로 대체되거나 다른 장식의
+            부속물처럼 묘사되지 않고 그 자체가 장식의 주체로 읽히는가? (예: heart를
+            골랐는데 문장이 "flower with a heart center"처럼 되어 있다면 오류 —
+            heart가 명확히 주인공이 되도록 다시 쓸 것.)
+        13) "tip accent", "edge detail" 등 위치를 한정하는 표현을 쓴 손가락마다,
+            그 장식이 손톱 일부에만 국한된다는 것이 문장에서 명확한가? (범위 한정 없이
+            "striking chrome tip accent"처럼만 쓰여 있다면, "along just the tip
+            edge" 같은 구체적 범위 표현을 추가해서 고칠 것.)
         하나라도 어긋나면 해당 손가락(들)을 다시 써서 고친 뒤에 최종 JSON을 출력하세요.
 
         [surface-finish 비호환 규칙 - 매우 중요]
