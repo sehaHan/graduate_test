@@ -33,6 +33,13 @@ public class GptClientService {
     @Value("${openai.api.model:gpt-4.1}")
     private String model;
 
+    // 이미지 "생성" 전용 (텍스트/JSON용 Chat Completions와 별개 엔드포인트/모델) — 테스트 용도.
+    @Value("${openai.api.image-url:https://api.openai.com/v1/images/generations}")
+    private String imageApiUrl;
+
+    @Value("${openai.api.image-model:gpt-image-2.5-sunburst}")
+    private String imageModel;
+
     /**
      * system 프롬프트 + 대화 메시지(role은 "user"/"assistant")를 보내고 응답 텍스트를 그대로 돌려준다.
      *
@@ -78,9 +85,43 @@ public class GptClientService {
     }
 
     /**
+     * [테스트 전용] GPT Image 2.5 Sunburst로 실제 이미지를 생성해서 base64(PNG)를 돌려준다.
+     * 텍스트/JSON용 chat()과 완전히 다른 엔드포인트(images/generations)와 모델을 쓴다.
+     *
+     * @param prompt  FingerDesignPlanService/NailDesignService가 조립한 최종 이미지 프롬프트
+     * @param size    예: "1536x1024"(가로형), "1024x1536"(세로형), "1024x1024", "auto"
+     * @param quality "auto"/"low"/"medium"/"high" 등 (auto 권장)
+     * @return base64 인코딩된 PNG 이미지
+     */
+    public String generateImage(String prompt, String size, String quality) {
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("model", imageModel);
+        requestBody.put("prompt", prompt);
+        requestBody.put("size", size);
+        requestBody.put("quality", quality);
+        requestBody.put("n", 1);
+
+        JsonNode responseNode = callWithRetry(requestBody, imageApiUrl);
+        JsonNode dataArray = responseNode.path("data");
+        if (!dataArray.isArray() || dataArray.isEmpty()) {
+            throw new IllegalStateException("이미지 생성 응답에 data가 없습니다: " + responseNode);
+        }
+        String b64 = dataArray.get(0).path("b64_json").asText(null);
+        if (b64 == null || b64.isBlank()) {
+            throw new IllegalStateException("이미지 생성 응답에 b64_json이 없습니다: " + responseNode);
+        }
+        return b64;
+    }
+
+    /** 텍스트/JSON용 chat completions 호출 (기본 apiUrl). */
+    private JsonNode callWithRetry(Map<String, Object> requestBody) {
+        return callWithRetry(requestBody, apiUrl);
+    }
+
+    /**
      * GPT 호출. 429(요청 한도 초과)나 5xx(서버 오류)면 잠깐 대기 후 최대 2회 재시도.
      */
-    private JsonNode callWithRetry(Map<String, Object> requestBody) {
+    private JsonNode callWithRetry(Map<String, Object> requestBody, String url) {
         WebClient webClient = webClientBuilder.build();
         int maxAttempts = 3;
         long backoffMillis = 1500;
@@ -88,7 +129,7 @@ public class GptClientService {
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
                 return webClient.post()
-                        .uri(apiUrl)
+                        .uri(url)
                         .header("Authorization", "Bearer " + apiKey.trim())
                         .bodyValue(requestBody)
                         .retrieve()
