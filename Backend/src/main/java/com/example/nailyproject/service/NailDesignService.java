@@ -14,6 +14,7 @@ import com.example.nailyproject.service.JsonColorMapper;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -807,6 +808,15 @@ public class NailDesignService {
         JsonNode plan = fingerDesignPlanService.generatePlan(
                 summary, imageBase64, imageMimeType, previousPlanJson, userSeasonForTrend, scanOrImageBased);
 
+        // ★ 시스템 프롬프트 지시(MOTIF_NONE_RESTRICTION)만으로는 GPT가 여전히 pearl
+        // bead/rhinestone 등을 채워 넣는 경우가 실제로 재현됐다 — 프롬프트 지시는
+        // 강제가 아니라 "권장"에 가깝기 때문. 옵션 선택으로 motif "없음"/"none"을
+        // 명시적으로 고른 경우(스캔/사진 기반 제외)엔 Java 쪽에서 plan을 직접
+        // 후처리해서 motif/parts를 무조건 비워버린다.
+        boolean motifExplicitlyDeclined = !scanOrImageBased && getLiked(slots, "motif").stream()
+                .anyMatch(v -> v != null && (v.trim().equalsIgnoreCase("none") || v.trim().equals("없음")));
+        stripMotifPartsIfExplicitlyDeclined(plan, motifExplicitlyDeclined);
+
         if (session != null) {
             backfillSlotsFromPlan(slots, plan);
             session.updateExtractedPreferences(objectMapper.writeValueAsString(slots));
@@ -1009,6 +1019,49 @@ public class NailDesignService {
             "rhinestone", "pearl bead", "pearl trim", "bow charm 3d",
             "star charm", "heart charm", "metal stud", "chain"
     );
+
+    // FingerDesignPlanService의 motif/parts 어휘 목록 전체 (핵심 요소 "없음" 강제 후처리용)
+    private static final List<String> MOTIF_PARTS_VOCAB = List.of(
+            "bow ribbon", "star", "heart", "flower", "butterfly", "cross", "bunny",
+            "leaf", "shell", "character", "lettering",
+            "rhinestone", "pearl bead", "pearl trim", "bow charm 3d",
+            "star charm", "heart charm", "metal stud", "chain"
+    );
+
+    /**
+     * motif "없음"을 명시적으로 고른 경우(스캔/사진 기반 제외), 시스템 프롬프트
+     * 지시만으로는 GPT가 여전히 motif/parts를 채워 넣는 경우가 있어서, plan JSON을
+     * 직접 후처리해서 5개 손가락 전부 motif/parts 배열을 비우고, description 문장 중
+     * 장식 관련 문장도 제거한다.
+     */
+    private void stripMotifPartsIfExplicitlyDeclined(JsonNode plan, boolean shouldStrip) {
+        if (!shouldStrip || !(plan instanceof ObjectNode)) return;
+        for (String finger : List.of("thumb", "index", "middle", "ring", "pinky")) {
+            JsonNode fingerNode = plan.path(finger);
+            if (!(fingerNode instanceof ObjectNode fingerObj)) continue;
+            fingerObj.putArray("motif");
+            fingerObj.putArray("parts");
+            String description = fingerObj.path("description").asText("");
+            if (!description.isBlank()) {
+                fingerObj.put("description", stripDecorationSentences(description));
+            }
+        }
+    }
+
+    private String stripDecorationSentences(String description) {
+        String[] sentences = description.split("(?<=[.!?])\\s+");
+        StringBuilder kept = new StringBuilder();
+        for (String sentence : sentences) {
+            boolean hasForbiddenWord = MOTIF_PARTS_VOCAB.stream().anyMatch(vocab ->
+                    java.util.regex.Pattern.compile("(?i)\\b" + java.util.regex.Pattern.quote(vocab) + "\\b")
+                            .matcher(sentence).find());
+            if (!hasForbiddenWord) {
+                if (kept.length() > 0) kept.append(" ");
+                kept.append(sentence);
+            }
+        }
+        return kept.toString();
+    }
 
     private LinkedHashSet<String> extractNailPartsFromPrompt(String prompt) {
         LinkedHashSet<String> parts = new LinkedHashSet<>();
