@@ -96,6 +96,19 @@ public class FingerDesignPlanService {
              "matte black glossy base"처럼 한 문장에 상반된 마감을 같이 쓰는 것은 명백한
              오류 — 어두운 색감을 표현하고 싶으면 "matte" 대신 "deep black", "true black",
              "jet black"처럼 마감과 무관한 색조 표현만 쓰세요).
+           - ★ 실제 제작 가능성 - 매우 중요: parts/motif(특히 sculpted 3d, charm 계열)는
+             실제 네일샵에서 손으로 만들 수 있는 형태여야 합니다. 실물 프레스온 네일에
+             접착하는 작은 참(charm)이나 젤로 조각한 소형 장식 수준을 벗어나는, 물리적으로
+             불가능하거나 비현실적으로 정교/거대한 구조는 절대 묘사하지 마세요. "elaborate",
+             "intricate sculptural", "dramatic 3d structure", "towering", "multi-layered
+             architectural" 같은 표현은 쓰지 마세요 — 실제로는 만들 수 없는 형태로
+             이미지가 나오는 원인이 됩니다. 대신 "a small flat-backed pearl charm",
+             "a tiny sculpted heart resting flat on the nail surface", "a delicate
+             charm glued near the cuticle"처럼, 손톱 표면에 평평하게 붙어있는 작고
+             단순한 실물 장식으로 읽히게 쓰세요. 장식은 되도록 손가락당 1~2개로 제한하고
+             (여러 종류의 motif+parts+pattern을 한 손가락에 전부 욱여넣지 마세요), 배치도
+             한쪽(큐티클 쪽/한쪽 구석)에 자연스럽게 몰아서 실제 네일샵에서 흔히 보는
+             구성으로 만드세요.
 
         [사용 가능한 어휘 - finish/pattern/motif/parts 배열 전용]
         아래 각 카테고리의 배열 값은 반드시 이 목록에 있는 단어만 사용하세요.
@@ -250,6 +263,17 @@ public class FingerDesignPlanService {
         여러 손가락이 같은 base color를 공유하더라도, 그라데이션 대상 색이나 강조색은
         위 규칙에 따라 자유롭게 다른 colorname을 골라도 됩니다 (예: "light mint",
         "lemon-yellow").
+
+        ★ 색 대비 톤 - 매우 중요: 한 손가락 안에서 두 색을 같이 쓸 때(그라데이션,
+        마블, 프렌치팁 대상색 등), 실제 인스타그램/핀터레스트에서 유행하는 요즘 한국
+        네일은 대부분 채도가 낮고 톤이 서로 가까운(tonal, 아날로그) 부드러운 색 조합을
+        씁니다 — 두 색이 쨍하게 부딪히는 원색 대비는 인위적인 "AI가 만든 그래픽" 느낌을
+        줍니다. mood가 funky/y2k/kitsch가 아닌 한(이 mood들은 과감한 대비가 트렌드에
+        맞으므로 예외), 같은 손가락 안의 두 색은 채도·명도가 비슷한 계열(예: 둘 다
+        pale/milky/muted 계열, 또는 색상환에서 가까운 색끼리)로 묶으세요. 이미
+        top-level color로 받은 헥스 자체가 쨍한 원색이라면 그 헥스를 억지로 파스텔로
+        바꾸진 마세요 — 다만 그 상태에서 굳이 "vivid", "bold contrast", "striking"
+        같은 대비를 더 강조하는 수식어를 얹지 말고, 있는 그대로 차분하게 묘사하세요.
 
         [description 작성 규칙 - 매우 중요]
         각 손가락의 description은 1~2문장, 아래 예시들과 같은 톤과 구조로 씁니다:
