@@ -138,6 +138,23 @@ public class FingerDesignPlanService {
           "blend/blur/melt into each other", "cloudy/dreamy/translucent". 뚜렷한
           "swirl", "streak", "line" 같은 표현도 줄무늬처럼 보일 수 있으니 되도록
           피하고, 색이 "번지고 스며드는" 쪽으로 묘사하세요.
+        - ★ 색 면적 비율 - 매우 중요, 반드시 지킬 것: 두 색이 손톱을 절반씩 나눠 덮는
+          "반반 스플릿"처럼 보이면 안 됩니다. 실제로 요즘 유행하는 느낌은 "맑고 여린
+          베이스에 색 한 방울을 떨어뜨린 것" 같은 느낌입니다 — 손톱 대부분(70%% 이상)은
+          맑고 연한 베이스 색이 차지하고, 다른 색은 한쪽 구석이나 큐티클 쪽 일부에만
+          작고 부드러운 "한 방울"처럼 살짝 번져 있어야 합니다. description을 "deep
+          brown glossy base with ... blush pink"처럼 진하고 채도 높은 색을 베이스로
+          먼저 언급하지 마세요 — 항상 더 맑고 연한 색을 base로 먼저 언급하고, 진한
+          포인트 색은 "a soft small drop/wash of ... near the [cuticle/corner/tip]"
+          처럼 위치와 "작다"는 인상이 분명한 표현으로 나중에 덧붙이세요. 예:
+          "Sheer, milky blush pink glossy base with just a small, soft drop of deep
+          warm brown gently diffusing in from one corner, like a drop of ink melting
+          into milk — most of the nail stays clear and pale." (O), "Deep brown
+          glossy base blended evenly with blush pink across the nail" (X — 면적이
+          반반으로 읽힘). 5개 손가락 전부 이 "맑은 베이스 + 작은 포인트 한 방울"
+          구조를 유지하되, 그 포인트 방울의 위치(큐티클 쪽/한쪽 구석/팁 쪽)와 크기
+          인상만 손가락마다 다르게 주세요 — 어떤 손가락은 진한 색이 베이스가 되는
+          식으로 뒤바뀌면 안 됩니다.
 
         motif (손가락별 motif 배열, 세트 전체에서 서로 다른 값 0~5개, 없으면 빈 배열):
         bow ribbon, star, heart, flower, butterfly, cross, bunny, leaf, shell, character, lettering
@@ -376,6 +393,15 @@ public class FingerDesignPlanService {
             each other", "cloudy/dreamy/translucent" 계열 표현으로, 색이 흐릿하게
             번지고 스며드는 오로라 마블 느낌이 되어 있는가? (돌 재질 단어가 남아있거나
             뚜렷한 선/결로 묘사되어 있다면 반드시 다시 써서 고칠 것.)
+        15) marble을 쓴 손가락마다, 첫 문장이 진하고 채도 높은 색을 base로 먼저
+            언급하고 있지 않은가? (예: "Deep brown glossy base with ... blush pink"
+            처럼 진한 색이 먼저 나오면 손톱 절반 이상이 그 색으로 읽혀서 "반반
+            스플릿"처럼 나옵니다.) 항상 더 맑고 연한 색을 base로 먼저 언급하고,
+            진한 포인트 색은 "a small soft drop/wash of ... near the [위치]"처럼
+            위치와 "작다"는 인상이 분명하게 나중에 오는가? 5개 손가락이 전부 이
+            "맑은 베이스 + 작은 포인트 한 방울" 구조를 유지하고 있는가, 아니면
+            일부 손가락에서 진한 색이 베이스가 되도록 뒤바뀌어 있는가? (뒤바뀐
+            손가락이 있다면 반드시 다시 써서 고칠 것.)
         하나라도 어긋나면 해당 손가락(들)을 다시 써서 고친 뒤에 최종 JSON을 출력하세요.
 
         [surface-finish 비호환 규칙 - 매우 중요]
