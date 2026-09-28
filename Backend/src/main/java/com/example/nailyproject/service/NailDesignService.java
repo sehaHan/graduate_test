@@ -1314,9 +1314,14 @@ public class NailDesignService {
                 .append("tips_only_flatlay presentation.\n\n");
 
         sb.append("Photography:\n")
-                .append("High-end beauty product photography, clean seamless white background, ")
-                .append("soft diffused studio lighting, subtle natural shadows, sharp focus, ")
-                .append("realistic reflections, bright high-key image, luxury catalog aesthetic.");
+                .append("A real close-up macro photograph taken with an actual DSLR camera, ")
+                .append("not a 3D render, not CGI, not a digital illustration, not an airbrushed ")
+                .append("or plastic-toy look. Clean seamless white background, soft natural diffused ")
+                .append("light, gentle authentic shadows, shallow depth of field with sharp focus on ")
+                .append("the nails, true-to-life color rendering. Subtle imperfections typical of ")
+                .append("real handmade gel nail polish — faint visible brush texture, slightly uneven ")
+                .append("gloss sheen, tiny natural variation between the five nails — like an authentic ")
+                .append("Korean nail salon portfolio photo, not a hyper-polished catalog render.");
 
         if (!noPhrases.isEmpty())
             sb.append("\n\nAvoid: ").append(String.join(", ", noPhrases)).append(".");
