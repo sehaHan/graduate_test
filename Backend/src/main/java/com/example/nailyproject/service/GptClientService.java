@@ -3,7 +3,11 @@ package com.example.nailyproject.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
@@ -39,6 +43,11 @@ public class GptClientService {
 
     @Value("${openai.api.image-model:gpt-image-2.5-sunburst}")
     private String imageModel;
+
+    // 이미지 "수정" 전용 (원본 이미지 + 수정 지시문을 보내 일부만 바꾼 이미지를 받는다).
+    // images/generations와 달리 multipart/form-data 요청이다.
+    @Value("${openai.api.image-edit-url:https://api.openai.com/v1/images/edits}")
+    private String imageEditApiUrl;
 
     /**
      * system 프롬프트 + 대화 메시지(role은 "user"/"assistant")를 보내고 응답 텍스트를 그대로 돌려준다.
@@ -113,9 +122,95 @@ public class GptClientService {
         return b64;
     }
 
+    /**
+     * [이미지 "수정" 전용] gpt-image 모델에게 원본 이미지 전체 + 수정 지시문을 보내서
+     * 수정된 이미지를 base64(PNG)로 받는다. 별도 마스크 없이, 모델이 지시문만 보고
+     * "언급된 부분만" 바꾸고 나머지는 그대로 유지하는 것에 의존한다 — 그래서 호출하는
+     * 쪽(RefineService)이 만드는 editInstruction은 "무엇을 바꿀지"와 "나머지는 정확히
+     * 그대로 둘 것"을 한 문장 안에 명시적으로 담아야 한다.
+     *
+     * @param editInstruction    수정 지시문 (영어, 위치 명시 + "나머지는 그대로" 문구 포함)
+     * @param originalImageBytes 원본 이미지 바이트(PNG)
+     * @param size               예: "1536x1024"
+     * @param quality            "auto"/"low"/"medium"/"high"
+     * @return base64 인코딩된 수정 이미지(PNG)
+     */
+    public String editImage(String editInstruction, byte[] originalImageBytes, String size, String quality) {
+        MultipartBodyBuilder builder = new MultipartBodyBuilder();
+        builder.part("model", imageModel);
+        builder.part("prompt", editInstruction);
+        builder.part("size", size);
+        builder.part("quality", quality);
+        builder.part("image", new ByteArrayResource(originalImageBytes) {
+                    @Override
+                    public String getFilename() {
+                        return "original.png";
+                    }
+                })
+                .filename("original.png")
+                .contentType(MediaType.IMAGE_PNG);
+
+        JsonNode responseNode = callMultipartWithRetry(builder, imageEditApiUrl);
+        JsonNode dataArray = responseNode.path("data");
+        if (!dataArray.isArray() || dataArray.isEmpty()) {
+            throw new IllegalStateException("이미지 수정 응답에 data가 없습니다: " + responseNode);
+        }
+        String b64 = dataArray.get(0).path("b64_json").asText(null);
+        if (b64 == null || b64.isBlank()) {
+            throw new IllegalStateException("이미지 수정 응답에 b64_json이 없습니다: " + responseNode);
+        }
+        return b64;
+    }
+
     /** 텍스트/JSON용 chat completions 호출 (기본 apiUrl). */
     private JsonNode callWithRetry(Map<String, Object> requestBody) {
         return callWithRetry(requestBody, apiUrl);
+    }
+
+    /**
+     * images/edits 전용 multipart 호출. 429/5xx면 잠깐 대기 후 최대 2회 재시도 (callWithRetry와 동일 정책).
+     */
+    private JsonNode callMultipartWithRetry(MultipartBodyBuilder builder, String url) {
+        WebClient webClient = webClientBuilder
+                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(20 * 1024 * 1024))
+                .build();
+        int maxAttempts = 3;
+        long backoffMillis = 1500;
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                return webClient.post()
+                        .uri(url)
+                        .header("Authorization", "Bearer " + apiKey.trim())
+                        .contentType(MediaType.MULTIPART_FORM_DATA)
+                        .body(BodyInserters.fromMultipartData(builder.build()))
+                        .retrieve()
+                        .bodyToMono(JsonNode.class)
+                        .block();
+            } catch (WebClientResponseException e) {
+                int statusCode = e.getStatusCode().value();
+                boolean isRetryable = statusCode == 429 || statusCode >= 500;
+                boolean hasAttemptsLeft = attempt < maxAttempts;
+
+                System.err.println("[GptClientService] OpenAI 이미지 수정 API 호출 실패 (시도 " + attempt + "/" + maxAttempts + "): "
+                        + e.getStatusCode() + " " + e.getResponseBodyAsString());
+
+                if (isRetryable && hasAttemptsLeft) {
+                    try {
+                        Thread.sleep(backoffMillis * attempt);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                    }
+                    continue;
+                }
+
+                if (isRetryable) {
+                    throw new IllegalStateException("지금 AI 서버가 혼잡해서 이미지 수정이 지연되고 있어요. 잠시 후 다시 시도해 주세요.");
+                }
+                throw new IllegalStateException("이미지 수정 응답을 받아오지 못했어요. 잠시 후 다시 시도해 주세요.");
+            }
+        }
+        throw new IllegalStateException("이미지 수정 응답을 받아오지 못했어요. 잠시 후 다시 시도해 주세요.");
     }
 
     /**
