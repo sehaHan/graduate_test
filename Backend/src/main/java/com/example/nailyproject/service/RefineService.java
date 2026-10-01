@@ -37,6 +37,11 @@ public class RefineService {
     private final NailDetectionService nailDetectionService;
     private final GptClientService gptClientService;
 
+    // "디자인 생성하기"와 동일한 토글을 공유한다. gptimage일 때는 디텍션+마스크 기반
+    // 인페인트 대신, 원본 이미지 전체를 gpt-image-2.5-sunburst edit API에 통째로 맡긴다.
+    @Value("${naily.image-provider:comfy}")
+    private String imageProvider;
+
     // Gemini 설정 - GPT로 교체하면서 주석 처리 (롤백 대비, 삭제 안 함)
     // @Value("${gemini.api.key}")
     // private String apiKey;
@@ -151,6 +156,73 @@ public class RefineService {
             }
             """;
 
+    /**
+     * naily.image-provider=gptimage일 때 쓰는 수정 지시문 생성용 시스템 프롬프트.
+     * 디텍션 서버로 영역을 마스킹하지 않고, 원본 이미지 전체 + 이 지시문 하나를
+     * gpt-image edit API에 그대로 넘기므로, "무엇을 바꿀지"와 "나머지는 절대 그대로
+     * 둘 것"을 반드시 한 문장 안에 명시적으로 담아야 한다 — 마스크가 없으니 지시문이
+     * 불명확하면 관련 없는 부분까지 바뀔 위험이 있다.
+     */
+    private static final String GPT_IMAGE_EDIT_SYSTEM_PROMPT_TEMPLATE = """
+            당신은 이미 완성된 네일 디자인 이미지를 수정하는 이미지 편집 AI(gpt-image)에게
+            보낼 "수정 지시문(editInstruction)"을 작성하는 역할입니다. 이번엔 영역을 따로
+            마스킹하지 않고, 원본 이미지 전체와 이 지시문만 그 편집 AI에게 전달합니다.
+            그러므로 "무엇을 바꿀지"와 "나머지는 절대 그대로 둘 것"을 반드시 하나의 영어
+            문장 안에 전부 담아야 합니다 — 마스크가 없으므로 지시문이 불명확하면 관련
+            없는 부분까지 바뀔 수 있습니다.
+
+            [원본 이미지 생성에 사용된 프롬프트]
+            %s
+
+            [직전 손가락별 플랜 (어느 손가락에 뭐가 있었는지 참고)]
+            %s
+
+            [손가락 → 이미지 속 위치 - 매우 중요]
+            원본 이미지는 왼쪽부터 오른쪽 순서로 5개의 손톱 팁이 가로로 나열되어 있습니다.
+            thumb  = 1st (왼쪽에서 첫 번째, 엄지)
+            index  = 2nd (검지)
+            middle = 3rd (중지)
+            ring   = 4th (약지)
+            pinky  = 5th (오른쪽 끝, 새끼)
+
+            [editInstruction 작성 규칙 - 매우 중요]
+            아래 구조를 반드시 그대로 따르세요:
+            "In this five-nail press-on nail set product photo, on the {Nth} nail tip
+            from the left (the {finger} finger), {수정 내용을 구체적으로 묘사}. Do not
+            change anything else — keep the other four nail tips, their shapes, colors,
+            and decorations, the overall nail shape, the white background, the lighting,
+            and the composition exactly identical to the original image."
+            - {Nth}/{finger}는 위 [손가락 → 이미지 속 위치] 표를 그대로 따르세요. 여러
+              손가락을 동시에 수정해야 하면 "on the 2nd and 4th nail tips from the left
+              (the index and ring fingers)"처럼 한 문장에 모으세요.
+            - 사용자가 손가락을 직접 지정하지 않았다면, [직전 손가락별 플랜]에서 색/파츠
+              등 사용자가 언급한 특징과 일치하는 손가락을 찾아 반드시 특정 위치로
+              못박으세요. 위치를 특정하지 않으면 마스크가 없어서 전체 이미지가 바뀔
+              위험이 있습니다 — "어느 손가락인지 모르겠다"는 이유로 위치 지정을
+              생략하면 안 됩니다. 정 애매하면 가장 가능성 높은 손가락 하나를 골라
+              지정하세요.
+            - 사용자가 요청한 수정 내용만 반영하고, 언급하지 않은 요소(다른 파츠, 베이스
+              색, 패턴 등)는 바꾸라는 말을 절대 넣지 마세요.
+            - 원본 프롬프트에서 전체 세트가 공유하는 shape, surface(glossy/matte) 등은
+              "나머지는 그대로" 문구로 이미 보존되므로 editInstruction에 다시 나열할
+              필요는 없습니다.
+
+            [slotActions / fingerOverrides / fingerDislikes]
+            기존과 동일하게 세션 상태 업데이트용으로 채우세요 (카테고리: mood, designType,
+            color, season, motif, shape. color는 반드시 hex(#RRGGBB) 형식. 언급 안 된
+            카테고리는 넣지 마세요).
+
+            반드시 아래 JSON 형식으로만 응답하세요. 마크다운 없이 순수 JSON만.
+            {
+                "editInstruction": "In this five-nail press-on nail set product photo, on the 4th nail tip from the left (the ring finger), replace the heart charm with a star charm. Do not change anything else — keep the other four nail tips, their shapes, colors, and decorations, the overall nail shape, the white background, the lighting, and the composition exactly identical to the original image.",
+                "slotActions": [
+                    {"category": "motif", "action": "add_dislike", "value": "heart"}
+                ],
+                "fingerOverrides": {"ring": "star charm instead of heart charm"},
+                "fingerDislikes": {"ring": ["heart"]}
+            }
+            """;
+
     private static final List<String> FINGER_ORDER = List.of("thumb", "index", "middle", "ring", "pinky");
 
     /**
@@ -173,6 +245,10 @@ public class RefineService {
                 ? session.getGeneratedPrompt() : prevDesign.getPromptSummary();
         String previousPlanJson = prevDesign.getDesignPlan() != null
                 ? prevDesign.getDesignPlan() : "(직전 플랜 없음)";
+
+        if ("gptimage".equalsIgnoreCase(imageProvider)) {
+            return applyRevisionViaGptImage(user, session, message, prevDesign, originalPrompt, previousPlanJson);
+        }
 
         // 1. GPT로 prompt + mask_prompt 생성
         String systemPrompt = String.format(SYSTEM_PROMPT_TEMPLATE, originalPrompt, previousPlanJson);
@@ -286,6 +362,87 @@ public class RefineService {
                 .generatedPrompt(inpaintPrompt)
                 .imageUrls(newDesign.getImageUrls())
                 .details(nailDesignService.buildDetails(newDesign)) // 수정 후 details는 프론트에서 별도 요청
+                .keywords(nailDesignService.extractKeywordsFromSlots(slots, session))
+                .build();
+    }
+
+    /**
+     * naily.image-provider=gptimage일 때 쓰는 수정 경로. 디텍션 서버로 영역을 찾아
+     * 마스킹하는 대신, 원본 이미지 전체 + "무엇을 바꾸고 나머지는 그대로 두라"는
+     * 지시문 하나를 통째로 gpt-image-2.5-sunburst의 edit API에 보낸다.
+     */
+    private DesignGenerateResponseDto applyRevisionViaGptImage(
+            User user, DesignSession session, String message, NailDesign prevDesign,
+            String originalPrompt, String previousPlanJson) throws Exception {
+
+        String systemPrompt = String.format(GPT_IMAGE_EDIT_SYSTEM_PROMPT_TEMPLATE, originalPrompt, previousPlanJson);
+        String aiText = gptClientService.chat(systemPrompt, message, 4096, true);
+
+        JsonNode resultJson;
+        try {
+            resultJson = objectMapper.readTree(aiText);
+        } catch (Exception e) {
+            System.err.println("[RefineService] gpt-image 수정 지시문 JSON 파싱 실패: " + aiText);
+            throw new IllegalStateException("수정 내용을 이해하지 못했어요. 다시 말씀해 주세요.");
+        }
+
+        String editInstruction = resultJson.path("editInstruction").asText("");
+        System.out.println("[RefineService] (gpt-image) editInstruction: " + editInstruction);
+        if (editInstruction.isBlank()) {
+            throw new IllegalStateException("수정할 내용을 파악하지 못했어요. 좀 더 구체적으로 말씀해 주세요.");
+        }
+
+        // 세션 슬롯/손가락 지정 업데이트 (기존 디텍션 경로와 동일)
+        Map<String, SlotData> slots = loadSlots(session.getExtractedPreferences());
+        applySlotActions(slots, resultJson.path("slotActions"));
+        try {
+            session.updateExtractedPreferences(objectMapper.writeValueAsString(slots));
+        } catch (Exception ignored) {}
+        mergeFingerOverrides(resultJson.path("fingerOverrides"),
+                session.getFingerOverrides(), session::updateFingerOverrides);
+        mergeFingerDislikes(resultJson.path("fingerDislikes"),
+                session.getFingerDislikes(), session::updateFingerDislikes);
+        designSessionRepository.save(session);
+
+        // 원본 이미지 → bytes (S3에서 다운로드)
+        String originalImageUrl = prevDesign.getImageUrls().get(0);
+        byte[] originalImageBytes = s3Service.downloadImageBytes(originalImageUrl);
+        if (originalImageBytes == null) {
+            throw new IllegalStateException("원본 이미지를 불러오지 못했어요.");
+        }
+
+        // gpt-image edit 호출 — 마스크 없이 원본 전체 + 지시문만 보냄
+        String editedBase64 = gptClientService.editImage(editInstruction, originalImageBytes, "1536x1024", "auto");
+
+        byte[] editedBytes = Base64.getDecoder().decode(editedBase64);
+        String s3Key = "designs/user_" + user.getId() + "/edit_" + UUID.randomUUID() + ".png";
+        String newImageUrl = s3Service.uploadImageBytes(editedBytes, s3Key);
+
+        NailDesign newDesign = NailDesign.builder()
+                .user(user)
+                .session(session)
+                .imageUrls(new ArrayList<>(List.of(newImageUrl)))
+                .promptSummary(editInstruction)
+                .aiModel("gpt-image-2.5-sunburst (edit)")
+                .status(NailDesign.DesignStatus.DRAFT)
+                .designPlan(prevDesign.getDesignPlan()) // 플랜은 그대로 유지
+                .seed(null) // OpenAI 이미지 API는 seed 개념이 없어 재현 불가
+                .build();
+        nailDesignRepository.save(newDesign);
+        nailDesignService.triggerPartsDetectionAsync(newDesign);
+        session.updateGeneratedPrompt(originalPrompt); // 원본 프롬프트 유지
+        designSessionRepository.save(session);
+
+        chatMessageRepository.save(ChatMessage.builder()
+                .session(session).role(ChatMessage.MessageRole.assistant)
+                .content("말씀하신 대로 수정했어요! 어떠세요?").build());
+
+        return DesignGenerateResponseDto.builder()
+                .designId(newDesign.getId())
+                .status(newDesign.getStatus().name())
+                .generatedPrompt(editInstruction)
+                .imageUrls(newDesign.getImageUrls())
+                .details(nailDesignService.buildDetails(newDesign))
                 .keywords(nailDesignService.extractKeywordsFromSlots(slots, session))
                 .build();
     }
