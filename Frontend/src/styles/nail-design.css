@@ -389,7 +389,10 @@
   display: grid;
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
   gap: 1.15rem;
-  align-items: start;
+  /* 파츠 섹션이 빠지면서 디테일 카드가 2개뿐이라, start로 위에만 붙이면 이미지보다
+     훨씬 짧아져서 아래쪽에 어색한 빈 공간이 생긴다. stretch로 두 컬럼 높이를 맞추고,
+     아래 .design-result-v2__details에서 그 안의 카드들을 세로로 가운데 정렬한다. */
+  align-items: stretch;
   margin-bottom: 1.35rem;
 }
 
@@ -425,6 +428,9 @@
   flex-direction: column;
   gap: 0.7rem;
   margin-bottom: 0;
+  /* 카드가 2개뿐이라 전체 높이(이미지와 같은 높이)를 다 못 채우므로, 위쪽에만
+     쏠리지 않도록 세로로 가운데 정렬해서 위아래 여백을 균등하게 나눈다. */
+  justify-content: center;
 }
 
 .design-result-v2__ar-chip {
