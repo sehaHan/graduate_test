@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { TEXTURE_INFO, CHARM_INFO } from '@/shared/constants/designPreferences'
+import { TEXTURE_INFO } from '@/shared/constants/designPreferences'
 import type { DesignDetailItem, DesignExtractedDetails } from '@/entities/design/api'
 import '@/styles/nail-design.css'
 
 const TEXTURE_INFO_BY_KO = Object.fromEntries(Object.entries(TEXTURE_INFO).map(([, v]) => [v.labelKo, v]))
-const CHARM_INFO_BY_KO = Object.fromEntries(Object.entries(CHARM_INFO).map(([, v]) => [v.labelKo, v]))
 
 type NormalizedDetail = { key: string; label: string; hex: string | null; imageUrl: string | null }
 
@@ -221,42 +220,6 @@ function ImageLightbox({ imageUrl, alt, onClose }: { imageUrl: string; alt: stri
     )
 }
 
-// 팔레트/텍스처와 달리 참·파츠는 이미 배경이 제거된 낱장 이미지라, 박스에 가두지
-// 않고 그 이미지 자체를 보여준다 - 로드 실패시에만 최소한의 아이콘으로 대체한다.
-function CharmImage({
-                         imageUrl,
-                         alt,
-                         fallbackIcon,
-                         onClick,
-                     }: {
-    imageUrl: string
-    alt: string
-    fallbackIcon: string
-    onClick: () => void
-}) {
-    const [broken, setBroken] = useState(false)
-
-    if (broken) {
-        return (
-            <span className="design-result-v2__charm-fallback" role="img" aria-label={alt}>
-                {fallbackIcon}
-            </span>
-        )
-    }
-
-    return (
-        <button type="button" className="design-result-v2__charm-image-button" onClick={onClick} aria-label={`${alt} 확대 보기`}>
-            <img
-                className="design-result-v2__charm-image"
-                src={imageUrl}
-                alt={alt}
-                loading="lazy"
-                onError={() => setBroken(true)}
-            />
-        </button>
-    )
-}
-
 function DetailThumb({
                          imageUrl,
                          shape,
@@ -318,14 +281,8 @@ export function DesignDetailsPanel({ details, loading = false, swatchLoading = f
         (details?.colorPalette ?? []).map((item, i) => normalizeDetailItem(item, i, 'palette')),
 )
 
-    const normalizedCharms = (details?.nailParts ?? []).map((item, i) => normalizeDetailItem(item, i, 'charm'))
-
     const swatchEntries = details?.swatches
         ? Object.entries(details.swatches).filter(([key]) => !key.startsWith('3d_charm'))
-        : []
-
-    const charmSwatchEntries = details?.swatches
-        ? Object.entries(details.swatches).filter(([key]) => key.startsWith('3d_charm'))
         : []
 
     return (
@@ -417,57 +374,6 @@ export function DesignDetailsPanel({ details, loading = false, swatchLoading = f
                     ) : (
                         <p className="design-result-v2__panel-hint">질감 정보가 없어요.</p>
                     )
-                )}
-            </div>
-
-            {/* 네일 참 · 파츠 */}
-            <div className="design-result-v2__detail-block">
-                <p className="design-result-v2__detail-label">네일 참 · 파츠</p>
-                {normalizedCharms.length > 0 || charmSwatchEntries.length > 0 ? (
-                    <div className="design-result-v2__charm-row">
-                        {/* 스와치에서 온 3d_charm */}
-
-                        {charmSwatchEntries.map(([key, url]) => {
-                            const shapePart = key
-                                .replace(/^3d_charm_?/, '')
-                                .replace(/_\d+$/, '')
-                                .replace(/_/g, ' ')
-                            const label = shapePart ? shapePart : '3D 참'
-                            return url ? (
-                                <CharmImage
-                                    key={key}
-                                    imageUrl={url}
-                                    alt={label}
-                                    fallbackIcon="✧"
-                                    onClick={() => setLightbox({ url, alt: label })}
-                                />
-                            ) : (
-                                <span className="design-result-v2__charm-fallback" key={key} role="img" aria-label={label}>
-            ✧
-        </span>
-                            )
-                        })}
-                        {/* designPlan에서 온 파츠 */}
-                        {normalizedCharms.map((item) => {
-                            const info = item.label ? CHARM_INFO[item.label] ?? CHARM_INFO_BY_KO[item.label] : undefined
-                            const alt = info?.labelKo ?? item.label ?? '네일 파츠'
-                            return item.imageUrl ? (
-                                <CharmImage
-                                    key={item.key}
-                                    imageUrl={item.imageUrl}
-                                    alt={alt}
-                                    fallbackIcon={info?.icon ?? '✧'}
-                                    onClick={() => setLightbox({ url: item.imageUrl as string, alt })}
-                                />
-                            ) : (
-                                <span className="design-result-v2__charm-fallback" key={item.key} role="img" aria-label={alt}>
-            {info?.icon ?? '✧'}
-        </span>
-                            )
-                        })}
-                    </div>
-                ) : (
-                    <p className="design-result-v2__panel-hint">사용된 파츠가 없어요.</p>
                 )}
             </div>
         </section>
