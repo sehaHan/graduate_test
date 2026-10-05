@@ -185,8 +185,27 @@ public class RefineService {
             ring   = 4th (약지)
             pinky  = 5th (오른쪽 끝, 새끼)
 
+            [수정 요청의 두 종류 - 매우 중요]
+            editInstruction을 쓰기 전에, 사용자 요청이 아래 둘 중 어느 쪽인지 먼저
+            판단하세요. 이 판단에 따라 "나머지를 얼마나 묶어둘지"가 달라집니다.
+
+            A) 국소 수정 — 특정 손가락(들)의 특정 요소를 바꾸는 요청
+               예: "하트를 별로 바꿔줘", "약지만 좀 더 진한 색으로", "검지에 리본 추가"
+               → 지목된 손가락 외의 모든 것(색, 모양, 장식, 배경, 조명, 구도)을 원본과
+                 동일하게 고정합니다.
+
+            B) 세트 전체 스타일/무드 변경 — 특정 손가락을 지목하지 않고 5개 전체의
+               분위기·톤·느낌을 바꿔달라는 요청
+               예: "전체적인 무드를 귀엽게 바꿔줘", "좀 더 세련되게", "분위기를 차분하게"
+               → 이 경우는 색/패턴/장식/마감까지도 전부 조정 대상입니다. "나머지는
+                 색까지 전부 그대로"로 묶어버리면 실제로는 거의 안 바뀌는 결과가
+                 나옵니다 — 오직 손톱 모양(쉐입)·5개 배열 순서·흰 배경·조명·구도만
+                 고정하고, 그 외(색감, 모티프/파츠의 형태나 톤, 패턴, 피니시)는 요청한
+                 무드에 맞게 자유롭게 바뀌어도 된다고 명시하세요.
+
             [editInstruction 작성 규칙 - 매우 중요]
-            아래 구조를 반드시 그대로 따르세요:
+
+            A) 국소 수정일 때는 아래 구조를 그대로 따르세요:
             "In this five-nail press-on nail set product photo, on the {Nth} nail tip
             from the left (the {finger} finger), {수정 내용을 구체적으로 묘사}. Do not
             change anything else — keep the other four nail tips, their shapes, colors,
@@ -195,17 +214,32 @@ public class RefineService {
             - {Nth}/{finger}는 위 [손가락 → 이미지 속 위치] 표를 그대로 따르세요. 여러
               손가락을 동시에 수정해야 하면 "on the 2nd and 4th nail tips from the left
               (the index and ring fingers)"처럼 한 문장에 모으세요.
-            - 사용자가 손가락을 직접 지정하지 않았다면, [직전 손가락별 플랜]에서 색/파츠
-              등 사용자가 언급한 특징과 일치하는 손가락을 찾아 반드시 특정 위치로
-              못박으세요. 위치를 특정하지 않으면 마스크가 없어서 전체 이미지가 바뀔
-              위험이 있습니다 — "어느 손가락인지 모르겠다"는 이유로 위치 지정을
-              생략하면 안 됩니다. 정 애매하면 가장 가능성 높은 손가락 하나를 골라
-              지정하세요.
+            - 사용자가 손가락을 직접 지정하지 않았지만 특정 요소(파츠/색 등) 하나만
+              바꿔달라는 거라면, [직전 손가락별 플랜]에서 그 요소와 일치하는 손가락을
+              찾아 반드시 특정 위치로 못박으세요. 위치를 특정하지 않으면 마스크가 없어서
+              전체 이미지가 바뀔 위험이 있습니다 — 정 애매하면 가장 가능성 높은 손가락
+              하나를 골라 지정하세요.
             - 사용자가 요청한 수정 내용만 반영하고, 언급하지 않은 요소(다른 파츠, 베이스
               색, 패턴 등)는 바꾸라는 말을 절대 넣지 마세요.
-            - 원본 프롬프트에서 전체 세트가 공유하는 shape, surface(glossy/matte) 등은
-              "나머지는 그대로" 문구로 이미 보존되므로 editInstruction에 다시 나열할
-              필요는 없습니다.
+
+            B) 세트 전체 스타일/무드 변경일 때는 아래 구조를 따르세요:
+            "In this five-nail press-on nail set product photo, restyle all five nail
+            tips to clearly read as {요청한 무드를 구체적인 시각 언어로, 예: a cute,
+            kawaii, playful feel} — {색감/패턴/장식/피니시를 그 무드에 맞게 어떻게
+            바꿀지 구체적으로 묘사, 예: shift the color palette toward softer pastel
+            tones, round and soften any motifs or charms, add gentle playful details
+            such as small hearts or soft pearls where it suits each nail}. Keep the
+            nail shape, the number and left-to-right arrangement of the five nail tips,
+            the white background, the lighting, and the overall composition exactly
+            the same as the original image.
+            - 수식어는 하나로 통일하세요 ("noticeably"와 "subtly"처럼 상반된 강도
+              표현을 같은 문장에 같이 쓰지 마세요).
+            - "crystal motif를 조정해라"처럼 모든 손톱에 특정 장식이 이미 있다고
+              전제하는 표현은 쓰지 마세요 — 장식이 없는 손톱도 있을 수 있으므로, 색감/
+              톤/피니시 자체의 변화로도 무드가 바뀌도록 "색감과 장식 전반을"처럼 포괄적
+              으로 쓰세요.
+            - 그래도 바뀌면 안 되는 건 손톱 쉐입, 5개라는 개수와 배치 순서, 흰 배경,
+              조명, 구도뿐입니다 — 이 다섯 가지만 "그대로" 문구에 명시하세요.
 
             [slotActions / fingerOverrides / fingerDislikes]
             기존과 동일하게 세션 상태 업데이트용으로 채우세요 (카테고리: mood, designType,
