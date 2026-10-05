@@ -226,12 +226,10 @@ public class RefineService {
             "In this five-nail press-on nail set product photo, restyle all five nail
             tips to clearly read as {요청한 무드를 구체적인 시각 언어로, 예: a cute,
             kawaii, playful feel} — {색감/패턴/장식/피니시를 그 무드에 맞게 어떻게
-            바꿀지 구체적으로 묘사, 예: shift the color palette toward softer pastel
-            tones, round and soften any motifs or charms, add gentle playful details
-            such as small hearts or soft pearls where it suits each nail}. Keep the
-            nail shape, the number and left-to-right arrangement of the five nail tips,
-            the white background, the lighting, and the overall composition exactly
-            the same as the original image.
+            바꿀지 구체적으로 묘사, 아래 규칙 참고}. Keep the nail shape, the number
+            and left-to-right arrangement of the five nail tips, the white background,
+            the lighting, and the overall composition exactly the same as the original
+            image.
             - 수식어는 하나로 통일하세요 ("noticeably"와 "subtly"처럼 상반된 강도
               표현을 같은 문장에 같이 쓰지 마세요).
             - "crystal motif를 조정해라"처럼 모든 손톱에 특정 장식이 이미 있다고
@@ -240,6 +238,28 @@ public class RefineService {
               으로 쓰세요.
             - 그래도 바뀌면 안 되는 건 손톱 쉐입, 5개라는 개수와 배치 순서, 흰 배경,
               조명, 구도뿐입니다 — 이 다섯 가지만 "그대로" 문구에 명시하세요.
+            - ★ 단정적으로 쓰세요 - 매우 중요: "consider adding", "where suitable",
+              "if possible", "may"처럼 안 해도 그만인 것 같은 애매한 조동사/표현은
+              절대 쓰지 마세요. 이미지 생성 모델이 이런 표현을 "선택적"으로 받아들여서
+              실제로는 거의 안 바뀌는 경우가 있었습니다. 대신 "add small heart charms
+              to two of the nails", "give each nail a soft pastel base"처럼 실제로
+              할 일을 단정해서 지시하세요.
+            - ★ 색상은 원본과 가깝게 유지하세요 - 매우 중요: 사용자가 색을 바꿔달라고
+              명시적으로 요청하지 않았다면, "shift the color palette toward pastel
+              tones"처럼 색 계열 자체를 완전히 바꾸라고 지시하지 마세요. 대신 원본의
+              색 계열(톤)을 그대로 유지하되 아주 미묘하게만(명도/채도를 살짝 높이거나
+              낮추는 정도) 달라져도 된다고 명시하세요 — 예: "keep each nail's original
+              base color family, only brightening or softening it very slightly to
+              feel more playful, without shifting to a different color family". 무드
+              변화는 주로 모티프/장식/피니시의 형태와 느낌으로 만들고, 색은 원본과 거의
+              같아 보이도록 하세요. 사용자가 색 변경을 직접 요청했을 때만 색 계열 자체를
+              바꾸는 지시를 쓰세요.
+            - ★ 모티프/참의 실제 제작 가능성 - 매우 중요: 추가하는 모티프나 참은 실제
+              네일샵에서 손톱에 붙일 수 있는 작고 단순한 형태(작은 하트/별/리본/진주알
+              같은 소형 참이나 평면 그림)로만 묘사하세요. "adorable animal faces"처럼
+              구체적인 캐릭터/얼굴 형태나 정교하고 비현실적인 조형물은 쓰지 마세요 —
+              이미지 생성 모델이 손톱 위에 기괴하거나 실제로는 만들 수 없는 형태로
+              그려버릴 위험이 있습니다.
 
             [slotActions / fingerOverrides / fingerDislikes]
             기존과 동일하게 세션 상태 업데이트용으로 채우세요 (카테고리: mood, designType,
